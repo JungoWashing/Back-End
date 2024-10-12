@@ -1,0 +1,343 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="en" xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>Chat Room</title>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>-->
+<!--    <style>-->
+<!--        body {-->
+<!--            font-family: Arial, sans-serif;-->
+<!--            background-color: #f4f4f9;-->
+<!--            margin: 0;-->
+<!--            padding: 20px;-->
+<!--        }-->
+
+<!--        h2 {-->
+<!--            text-align: center;-->
+<!--        }-->
+
+<!--        #chatMessages {-->
+<!--            list-style-type: none;-->
+<!--            padding: 0;-->
+<!--            margin: 20px 0;-->
+<!--            max-width: 500px;-->
+<!--            margin-left: auto;-->
+<!--            margin-right: auto;-->
+<!--        }-->
+
+<!--        .message {-->
+<!--            margin: 10px;-->
+<!--            padding: 10px 15px;-->
+<!--            border-radius: 20px;-->
+<!--            max-width: 70%;-->
+<!--            display: inline-block;-->
+<!--            word-wrap: break-word;-->
+<!--        }-->
+
+<!--        .my-message {-->
+<!--            background-color: #e1ffc7;-->
+<!--            text-align: right;-->
+<!--            float: right;-->
+<!--            clear: both;-->
+<!--        }-->
+
+<!--        .other-message {-->
+<!--            background-color: #ffffff;-->
+<!--            text-align: left;-->
+<!--            float: left;-->
+<!--            clear: both;-->
+<!--            border: 1px solid #ddd;-->
+<!--        }-->
+
+<!--        #messageInputArea {-->
+<!--            text-align: center;-->
+<!--            margin-top: 20px;-->
+<!--        }-->
+
+<!--        input[type="text"] {-->
+<!--            padding: 10px;-->
+<!--            border-radius: 5px;-->
+<!--            border: 1px solid #ccc;-->
+<!--            width: calc(100% - 22px);-->
+<!--            max-width: 500px;-->
+<!--            margin: 5px auto;-->
+<!--            display: block;-->
+<!--        }-->
+
+<!--        button {-->
+<!--            background-color: #4CAF50;-->
+<!--            color: white;-->
+<!--            padding: 10px 20px;-->
+<!--            border: none;-->
+<!--            border-radius: 5px;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+
+<!--        button:hover {-->
+<!--            background-color: #45a049;-->
+<!--        }-->
+
+<!--        #chatBox {-->
+<!--            border: 1px solid #ccc;-->
+<!--            background-color: #fff;-->
+<!--            padding: 15px;-->
+<!--            max-width: 500px;-->
+<!--            margin-left: auto;-->
+<!--            margin-right: auto;-->
+<!--            height: 300px;-->
+<!--            overflow-y: auto;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<h2>Chat Room</h2>-->
+
+<!--<div id="chatBox">-->
+<!--    <ul id="chatMessages"></ul>-->
+<!--</div>-->
+
+<!--<div id="messageInputArea">-->
+<!--    <div>-->
+<!--        <label for="roomId">Room ID:</label>-->
+<!--        <input type="text" id="roomId" value="test_0">-->
+<!--        <button onclick="enterRoom()">Enter Room</button>-->
+<!--    </div>-->
+<!--    <div>-->
+<!--        <label for="sender">Sender Name:</label>-->
+<!--        <input type="text" id="sender" value="User1">-->
+<!--    </div>-->
+<!--    <div>-->
+<!--        <label for="message">Message:</label>-->
+<!--        <input type="text" id="message" placeholder="Type a message">-->
+<!--        <button onclick="sendMessage()">Send Message</button>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<script>-->
+<!--    let stompClient = null;-->
+<!--    let roomId = null;  // roomId를 사용자가 입력한 값으로 설정-->
+<!--    let sender = null;  // sender도 사용자가 입력한 값으로 설정-->
+
+<!--    // 서버에 연결하고 특정 채팅방을 구독-->
+<!--    function connect() {-->
+<!--        const socket = new SockJS('/ws-stomp');-->
+<!--        stompClient = Stomp.over(socket);-->
+
+<!--        stompClient.connect({}, function (frame) {-->
+<!--            console.log('Connected: ' + frame);-->
+<!--            // 특정 방에 구독-->
+<!--            stompClient.subscribe('/sub/chat/room/' + roomId, function (messageOutput) {-->
+<!--                const message = JSON.parse(messageOutput.body);-->
+<!--                // 현재 유저가 보낸 메시지는 표시하지 않음-->
+<!--                if (message.sender !== sender) {-->
+<!--                    showMessage(message.sender, message.message);-->
+<!--                }-->
+<!--            });-->
+
+<!--            // 입장 시 이전 메시지 불러오기-->
+<!--            loadPreviousMessages(roomId);-->
+
+<!--            // 입장 메시지 보내기-->
+<!--            sendJoinMessage();-->
+<!--        }, function (error) {-->
+<!--            console.error('Connection error: ' + error);-->
+<!--        });-->
+<!--    }-->
+
+<!--    // 이전 메시지 불러오기-->
+<!--    function loadPreviousMessages(roomId) {-->
+<!--        fetch(`/chat/room/${roomId}/messages`)-->
+<!--            .then(response => response.json())-->
+<!--            .then(messages => {-->
+<!--                messages.forEach(message => {-->
+<!--                    // 저장된 메시지를 화면에 표시-->
+<!--                    showMessage(message.sender, message.message);-->
+<!--                });-->
+<!--            })-->
+<!--            .catch(error => console.error('Error loading messages:', error));-->
+<!--    }-->
+
+<!--    // 방에 입장-->
+<!--    // 방에 입장-->
+<!--    function enterRoom() {-->
+<!--        roomId = document.getElementById('roomId').value;  // 사용자가 입력한 roomId 값을 가져옴-->
+<!--        sender = document.getElementById('sender').value;  // 사용자가 입력한 sender 값을 가져옴-->
+
+<!--        if (!roomId) {-->
+<!--            alert('Room ID is required');-->
+<!--            return;-->
+<!--        }-->
+
+<!--        if (!sender) {-->
+<!--            alert('Sender Name is required');-->
+<!--            return;-->
+<!--        }-->
+
+<!--        // Check if the room exists-->
+<!--        fetch(`/chat/room/${roomId}/exists`)-->
+<!--            .then(response => response.json())-->
+<!--            .then(data => {-->
+<!--                if (data.exists) {-->
+<!--                    // If room exists, connect to it-->
+<!--                    connect();-->
+<!--                } else {-->
+<!--                    // If room does not exist, create a new room-->
+<!--                    createRoom(roomId).then(() => {-->
+<!--                        // Once the room is created, connect to it-->
+<!--                        connect();-->
+<!--                    }).catch(error => {-->
+<!--                        console.error('Error creating room:', error);-->
+<!--                        alert('Failed to create room');-->
+<!--                    });-->
+<!--                }-->
+<!--            })-->
+<!--            .catch(error => {-->
+<!--                console.error('Error checking room existence:', error);-->
+<!--                alert('Failed to check room existence');-->
+<!--            });-->
+<!--    }-->
+
+<!--    // 새로운 방을 생성-->
+<!--    function createRoom(roomId) {-->
+<!--        return fetch(`/chat/room/create`, {-->
+<!--            method: 'POST',-->
+<!--            headers: {-->
+<!--                'Content-Type': 'application/json'-->
+<!--            },-->
+<!--            body: JSON.stringify({-->
+<!--                'roomId': roomId-->
+<!--            })-->
+<!--        })-->
+<!--            .then(response => response.json())-->
+<!--            .then(data => {-->
+<!--                console.log('Room created:', data);-->
+<!--            });-->
+<!--    }-->
+
+
+<!--    // JOIN 메시지 전송-->
+<!--    function sendJoinMessage() {-->
+<!--        stompClient.send("/pub/chat/message", {}, JSON.stringify({-->
+<!--            'roomId': roomId,-->
+<!--            'sender': sender,-->
+<!--            'message': '',  // 입장 메시지는 빈 문자열-->
+<!--            'messageType': 'JOIN'  // 입장 메시지 타입-->
+<!--        }));-->
+<!--    }-->
+
+<!--    // 채팅 메시지 전송-->
+<!--    function sendMessage() {-->
+<!--        const message = document.getElementById('message').value;-->
+
+<!--        if (!message) {-->
+<!--            alert('Message cannot be empty');-->
+<!--            return;-->
+<!--        }-->
+
+<!--        // 메시지 서버로 전송-->
+<!--        stompClient.send("/pub/chat/message", {}, JSON.stringify({-->
+<!--            'roomId': roomId,-->
+<!--            'sender': sender,-->
+<!--            'message': message,-->
+<!--            'messageType': 'TALK'  // 채팅 메시지 타입-->
+<!--        }));-->
+
+<!--        document.getElementById('message').value = '';  // 메시지 입력 필드 초기화-->
+<!--        showMessage(sender, message, true);  // 내가 보낸 메시지는 바로 오른쪽에 보여줌-->
+<!--    }-->
+
+<!--    // 메시지를 화면에 보여줌-->
+<!--    function showMessage(sender, message, isMyMessage = false) {-->
+<!--        const messageElement = document.createElement('li');-->
+<!--        messageElement.classList.add('message');-->
+<!--        if (isMyMessage) {-->
+<!--            messageElement.classList.add('my-message');-->
+<!--        } else {-->
+<!--            messageElement.classList.add('other-message');-->
+<!--        }-->
+<!--        messageElement.appendChild(document.createTextNode(sender + ": " + message));-->
+<!--        document.getElementById('chatMessages').appendChild(messageElement);-->
+
+<!--        // 새로운 메시지가 표시되면 스크롤을 맨 아래로-->
+<!--        const chatBox = document.getElementById('chatBox');-->
+<!--        chatBox.scrollTop = chatBox.scrollHeight;-->
+<!--    }-->
+<!--</script>-->
+
+<!--</body>-->
+<!--</html>-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload for Auction</title>
+</head>
+<body>
+<h2>Upload Image for Auction</h2>
+<form id="uploadForm" action="/api/images/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept="image/*" required>
+    <input type="number" name="auctionId" placeholder="Auction ID" required>
+    <button type="submit">Upload</button>
+</form>
+
+<h2>All Images for Auction</h2>
+<input type="number" id="auctionIdInput" placeholder="Auction ID" required>
+<button id="viewAllImagesButton">View All Images</button>
+<div id="allImages"></div>
+
+<script>
+    document.getElementById("uploadForm").onsubmit = function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+
+        fetch("/api/images/upload", {
+            method: "POST",
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error("Upload failed");
+        }).then(data => {
+            alert(data.message);
+        }).catch(error => {
+            alert(error.message);
+        });
+    };
+
+    document.getElementById("viewAllImagesButton").onclick = function() {
+        const auctionId = document.getElementById("auctionIdInput").value;
+
+        if (!auctionId) {
+            alert("Please enter a valid Auction ID");
+            return;
+        }
+
+        fetch(`/api/images/all/${auctionId}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error("Failed to fetch all images");
+            }).then(data => {
+            const allImagesDiv = document.getElementById("allImages");
+            allImagesDiv.innerHTML = "";
+            data.forEach(image => {
+                const imgElement = document.createElement("img");
+                imgElement.src = `data:image/jpeg;base64,${image.data}`;
+                imgElement.alt = "Uploaded Image";
+                imgElement.style.margin = "10px";
+                imgElement.width = 150;
+                allImagesDiv.appendChild(imgElement);
+            });
+        }).catch(error => {
+            alert(error.message);
+        });
+    };
+</script>
+</body>
+</html>
