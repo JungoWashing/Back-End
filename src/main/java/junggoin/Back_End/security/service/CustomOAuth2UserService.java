@@ -32,18 +32,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // OAuth2 사용자 정보를 객체로 변환
         GoogleOAuth2UserInfo oauth2UserInfo = new GoogleOAuth2UserInfo(oAuth2User.getAttributes());
 
-        // 소셜 ID를 이용해 DB에서 멤버를 찾아 없으면 신규 생성
-        Member member = memberService.findMemberBySocialId(oauth2UserInfo.getSocialId())
+        // email 로 DB 에서 회원을 찾아 없으면 신규 생성
+        Member member = memberService.findMemberByEmail(oauth2UserInfo.getEmail())
                 .orElseGet(()->memberService.createMember(oauth2UserInfo));
 
         // 프로필 이미지가 변경된 경우
         if (!member.getProfileImageUrl().equals(oauth2UserInfo.getPictureUrl())) {
-            member = memberService.updateMemberProfileImage(member,oauth2UserInfo.getPictureUrl());
+            member.updateProfileImageUrl(oauth2UserInfo.getPictureUrl());
         }
 
         // 이름이 변경된 경우
         if (!member.getName().equals(oauth2UserInfo.getName())) {
-            member = memberService.updateMemberName(member,oauth2UserInfo.getName());
+            member.updateName(member.getName());
         }
 
         return new CustomOAuth2User(oauth2UserInfo, member);

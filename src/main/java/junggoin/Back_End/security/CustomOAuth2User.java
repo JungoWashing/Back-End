@@ -15,11 +15,10 @@ import java.util.Map;
 /**
  * SpringSecurity 의 SecurityContextHolder 에 들어갈 인증 정보
  */
+@Getter
 @RequiredArgsConstructor
 public class CustomOAuth2User implements OAuth2User, UserDetails {
     private final GoogleOAuth2UserInfo oAuth2UserInfo;
-
-    @Getter
     private final Member member;
 
     @Override

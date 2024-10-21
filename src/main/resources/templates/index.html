@@ -289,14 +289,19 @@
 <button id="viewAllImagesButton">View All Images</button>
 <div id="allImages"></div>
 
+
 <h2>OAuth2 Login</h2>
-<a href="/oauth2/authorization/google">구글 로그인</a>
-<a href="/logout">로그아웃</a>
+<form action="/oauth2/authorization/google" method="GET">
+    <button type="submit">인하대 로그인</button>
+</form>
+<form id="logoutForm" action="/logout" method="POST" style="display:none;">
+    <input type="hidden"/>
+</form>
+<a href="#" onclick="document.getElementById('logoutForm').submit();">로그아웃</a>
 
 <h2>Member Info</h2>
 
 <input type="number" id="memberId" placeholder="Enter Member ID" />
-<button onclick="getMember()">Get Member Info</button>
 <button onclick="getMyInfo()">Get My Info</button>
 
 <div class="response" id="responseOutput">Response will appear here...</div>
@@ -349,18 +354,6 @@
             alert(error.message);
         });
     };
-    async function getMember() {
-        const memberId = document.getElementById('memberId').value;
-        const url = `/api/members/${memberId}`;
-
-        try {
-            const response = await fetch(url, { method: 'GET', credentials: 'include' });
-            const data = await response.json();
-            displayResponse(data);
-        } catch (error) {
-            displayResponse({ error: 'Failed to fetch member info.' });
-        }
-    }
 
     async function getMyInfo() {
         const url = `/api/members/my-info`;

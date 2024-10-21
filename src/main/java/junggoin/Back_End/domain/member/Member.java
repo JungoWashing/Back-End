@@ -5,13 +5,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import static jakarta.persistence.EnumType.STRING;
 import static jakarta.persistence.GenerationType.IDENTITY;
 import static lombok.AccessLevel.PROTECTED;
+
 @Getter
 @Builder
 @NoArgsConstructor(access = PROTECTED)
@@ -27,7 +30,7 @@ public class Member {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "nickname",unique = true)
+    @Column(name = "nickname", unique = true)
     private String nickname;
 
     @Column(name = "password")
@@ -62,9 +65,16 @@ public class Member {
     public void updateName(String newName) {
         this.name = newName;
     }
+
     public void updateNickname(String newNickname) {
         this.nickname = newNickname;
     }
 
-    public void updateProfileImageUrl(String profileImageUrl) {this.profileImageUrl = profileImageUrl;}
+    public void updateRole(RoleType newRole) {
+        this.role = newRole;
+    }
+
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
 }

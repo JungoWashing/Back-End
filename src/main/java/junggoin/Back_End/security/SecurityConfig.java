@@ -28,6 +28,7 @@ public class SecurityConfig {
     private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
     private final CustomOAuth2FailureHandler customOAuth2FailureHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomAuthorizationRequestResolver customAuthorizationRequestResolver;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -54,6 +55,7 @@ public class SecurityConfig {
                         logoutConfigurer
                                 .logoutUrl("/logout")
                                 .invalidateHttpSession(true)    // 로그아웃 후 세션 초기화
+                                .clearAuthentication(true)      // 인증 정보 삭제
                                 .deleteCookies("JSESSIONID")    // 로그아웃 후 쿠키 제거, 하지만 제거가 안됨...
                                 .logoutSuccessHandler(customLogoutSuccessHandler)
                 )
@@ -63,6 +65,9 @@ public class SecurityConfig {
                                 userInfoEndPointConfig ->
                                         userInfoEndPointConfig.userService(customOAuth2UserService)
                         )
+                        // 인하대 이메일만 로그인 가능하게 하기 위해 customAuthorizationRequestResolver 설정
+                        .authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig
+                                .authorizationRequestResolver(customAuthorizationRequestResolver))
                         .failureHandler(customOAuth2FailureHandler)
                         .successHandler(customOAuth2SuccessHandler))
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {

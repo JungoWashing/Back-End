@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 @Component
 @RequiredArgsConstructor
 public class CustomLogoutSuccessHandler implements LogoutSuccessHandler {
-
     @Override
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
             throws IOException, ServletException {
@@ -25,6 +24,7 @@ public class CustomLogoutSuccessHandler implements LogoutSuccessHandler {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setStatus(HttpServletResponse.SC_OK);
-        response.getWriter().write("{\"message\": \"Logout successful\"}");
+
+        response.getWriter().write("{\"message\": \"로그아웃 성공\"}");
     }
 }
