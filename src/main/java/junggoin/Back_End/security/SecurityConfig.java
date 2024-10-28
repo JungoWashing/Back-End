@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/", "/error", "/favicon.ico", "/*.png", "/*.gif", "/*.svg", "/*.jpg", "/*.html", "/*.css", "/*.js")
                         .permitAll()
-//                        .requestMatchers("/api/**").hasAnyAuthority("ROLE_ADMIN","ROLE_USER")
+//                        .requestMatchers("/api/**").hasAnyAuthority("ROLE_ADMIN","ROLE_USER","ROLE_GUEST")
                         // swagger 인증 설정이 안돼있어서 일단 permitAll
                         .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated())

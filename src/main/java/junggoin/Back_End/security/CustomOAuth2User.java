@@ -1,6 +1,7 @@
 package junggoin.Back_End.security;
 
 import junggoin.Back_End.domain.member.Member;
+import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,5 +47,16 @@ public class CustomOAuth2User implements OAuth2User, UserDetails {
     @Override
     public String getName() {
         return member.getName();
+    }
+
+    public MemberInfoResponse getMemberInfo() {
+        return MemberInfoResponse.builder()
+                .email(member.getEmail())
+                .name(member.getName())
+                .nickname(member.getNickname())
+                .profileImageUrl(member.getProfileImageUrl())
+                .createAt(member.getCreated_at())
+                .role(member.getRole())
+                .build();
     }
 }

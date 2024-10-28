@@ -43,7 +43,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // 이름이 변경된 경우
         if (!member.getName().equals(oauth2UserInfo.getName())) {
-            member.updateName(member.getName());
+            member.updateName(oauth2UserInfo.getName());
         }
 
         return new CustomOAuth2User(oauth2UserInfo, member);
