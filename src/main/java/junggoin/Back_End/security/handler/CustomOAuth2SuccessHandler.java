@@ -1,8 +1,5 @@
 package junggoin.Back_End.security.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,6 +8,7 @@ import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
 import junggoin.Back_End.security.CustomOAuth2User;
 import junggoin.Back_End.security.GoogleOAuth2UserInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -18,20 +16,23 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Slf4j
 @Component
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${flutter.uri-scheme}")
+    private String flutterUri;
+
+    @Value("${server_url}")
+    private String serverUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setStatus(HttpServletResponse.SC_OK);
 
         // ROLE_GUEST 인 경우 회원 가입을 정상적으로 마치려면 /api/memebers/join 에 회원가입 요청을 보내야함
 
@@ -46,23 +47,42 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         boolean isGuest = authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(RoleType.ROLE_GUEST.name()));
 
-        // 닉네임 작성 필요
-        if(isGuest){
-            Map<String, String> responseMap = new LinkedHashMap<>();
-            responseMap.put("message", "닉네임 작성 필요");
-            // email, name 은 프론트에서 read-only 로 보여주기만 하면 될 듯
-            responseMap.put("email", oAuth2UserInfo.getEmail());
-            responseMap.put("name", oAuth2UserInfo.getName());
-            responseMap.put("role", RoleType.ROLE_GUEST.name());
+        // User Agent 확인
+        String userAgent = request.getHeader("User-Agent");
+        boolean isMobile = userAgent != null && (userAgent.contains("Android") || userAgent.contains("iPhone"));
+        String targetUrl;
 
-            response.getWriter().write(objectMapper.writeValueAsString(responseMap));
+        if(isMobile){
+            targetUrl = flutterUri+"://";
         }else{
+            targetUrl = serverUrl;
+        }
+        String redirectUri;
+
+        String jsessionid =request.getRequestedSessionId();
+
+        // 닉네임 작성 필요
+        if (isGuest) {
+            redirectUri = targetUrl+"?"
+            + "role="+URLEncoder.encode(RoleType.ROLE_GUEST.name(), StandardCharsets.UTF_8)+"&"
+            + "name="+URLEncoder.encode(oAuth2UserInfo.getName(), StandardCharsets.UTF_8)+"&"
+            + "email="+URLEncoder.encode(oAuth2UserInfo.getEmail(), StandardCharsets.UTF_8);
+
+        } else {
             MemberInfoResponse memberInfoResponse = customOAuth2User.getMemberInfo();
-            // localdatetime 직렬화 하기위해 아래와 같이 작성
-            ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule()).disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-            response.getWriter().write(objectMapper.writeValueAsString(memberInfoResponse));
+            redirectUri = targetUrl+"?"
+            + "role="+URLEncoder.encode(memberInfoResponse.getRole().name(), StandardCharsets.UTF_8)+"&"
+            + "name="+URLEncoder.encode(memberInfoResponse.getName(), StandardCharsets.UTF_8)+"&"
+            + "email="+URLEncoder.encode(memberInfoResponse.getEmail(), StandardCharsets.UTF_8)+"&"
+            + "nickname="+URLEncoder.encode(memberInfoResponse.getNickname(), StandardCharsets.UTF_8)+"&"
+            + "profile_image_url"+URLEncoder.encode(memberInfoResponse.getProfileImageUrl(), StandardCharsets.UTF_8)+"&"
+            + "create_at"+URLEncoder.encode(memberInfoResponse.getCreateAt().toString(), StandardCharsets.UTF_8);
+        }
+        if (jsessionid != null) {
+            redirectUri += "&jsessionid=" + URLEncoder.encode(jsessionid, StandardCharsets.UTF_8);
         }
 
-        log.debug("Authentication successful: {}", authentication);
+        response.sendRedirect(redirectUri);
+        log.info("{}",redirectUri);
     }
 }
