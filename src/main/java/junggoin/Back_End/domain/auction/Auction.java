@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -20,8 +22,10 @@ import static lombok.AccessLevel.PROTECTED;
 
 @Entity
 @Getter
+@EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor(access = PROTECTED)
 public class Auction {
+
     @Id
     @GeneratedValue(strategy = IDENTITY)
     @Column(name = "auction_id")
@@ -50,7 +54,6 @@ public class Auction {
     private List<Image> images = new ArrayList<>();
 
     @Column(name = "expired_at")
-    @CreatedDate
     private LocalDateTime expiredAt;
 
     @Column(name = "winning_price")
@@ -61,7 +64,7 @@ public class Auction {
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    @CreatedDate
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     @ManyToOne(fetch = LAZY)
@@ -70,7 +73,9 @@ public class Auction {
     private Member member;
 
     @Builder
-    public Auction(Long id, String itemName, List<Bid> bids, String description, int startingPrice, int immediatePurchasePrice, LocalDateTime expiredAt, int winningPrice, Status status, Member member, List<Image> images) {
+    public Auction(Long id, String itemName, List<Bid> bids, String description, int startingPrice,
+            int immediatePurchasePrice, LocalDateTime expiredAt, int winningPrice, Status status,
+            Member member, List<Image> images) {
         this.id = id;
         this.itemName = itemName;
         this.description = description;

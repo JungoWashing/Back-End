@@ -1,6 +1,10 @@
 package junggoin.Back_End.domain.member;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+import junggoin.Back_End.domain.chat.MemberChatRoom;
+import junggoin.Back_End.domain.image.Image;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +26,7 @@ import static lombok.AccessLevel.PROTECTED;
 @EntityListeners(AuditingEntityListener.class)  // @CreatedDate 작동을 위해서 추가
 @Entity
 public class Member {
+
     @Id
     @GeneratedValue(strategy = IDENTITY)
     @Column(name = "member_id")
@@ -52,14 +57,21 @@ public class Member {
     @Enumerated(STRING)
     private RoleType role;
 
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<MemberChatRoom> memberChatRooms = new ArrayList<>();
+
     @Builder
-    public Member(String name, String nickname, String socialId, String email, String profileImageUrl, RoleType role) {
+    public Member(String name, String nickname, String socialId, String email,
+            String profileImageUrl, RoleType role, List<MemberChatRoom> memberChatRooms) {
         this.name = name;
         this.nickname = nickname;
         this.socialId = socialId;
         this.email = email;
         this.profileImageUrl = profileImageUrl;
         this.role = role;
+        this.memberChatRooms = memberChatRooms;
     }
 
     public void updateName(String newName) {
