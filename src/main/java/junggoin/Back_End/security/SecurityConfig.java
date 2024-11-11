@@ -1,21 +1,20 @@
 package junggoin.Back_End.security;
 
-import junggoin.Back_End.security.handler.CustomLogoutSuccessHandler;
-import junggoin.Back_End.security.handler.CustomOAuth2FailureHandler;
-import junggoin.Back_End.security.handler.CustomOAuth2SuccessHandler;
+import junggoin.Back_End.security.filter.JwtAuthenticationFilter;
+import junggoin.Back_End.security.handler.*;
 import junggoin.Back_End.security.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,10 +24,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 public class SecurityConfig {
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
-    private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
+    private final CustomLogoutHandler customLogoutHandler;
     private final CustomOAuth2FailureHandler customOAuth2FailureHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomAuthorizationRequestResolver customAuthorizationRequestResolver;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -38,8 +39,7 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(httpSecuritySessionManagementConfigurer -> httpSecuritySessionManagementConfigurer
-                        .maximumSessions(1)
-                        .maxSessionsPreventsLogin(false))
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 인증이 필요없는 url
                         .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**")
@@ -55,10 +55,8 @@ public class SecurityConfig {
                 .logout(logoutConfigurer ->
                         logoutConfigurer
                                 .logoutUrl("/logout")
-                                .invalidateHttpSession(true)    // 로그아웃 후 세션 초기화
-                                .clearAuthentication(true)      // 인증 정보 삭제
-                                .deleteCookies("JSESSIONID")    // 로그아웃 후 쿠키 제거, 하지만 제거가 안됨...
-                                .logoutSuccessHandler(customLogoutSuccessHandler)
+                                .logoutSuccessHandler(customLogoutHandler)
+                                .addLogoutHandler(customLogoutHandler)
                 )
                 // oauth2 로그인 url : /oauth2/authorization/google
                 .oauth2Login(oauth2 -> oauth2
@@ -71,10 +69,10 @@ public class SecurityConfig {
                                 .authorizationRequestResolver(customAuthorizationRequestResolver))
                         .failureHandler(customOAuth2FailureHandler)
                         .successHandler(customOAuth2SuccessHandler))
-                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {
-                    // 인증되지 않은 요청에 대해 401 반환
-                    httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
-                })
+                // 인증 관련 예외처리
+                .exceptionHandling((exceptionConfig) -> exceptionConfig.authenticationEntryPoint(customAuthenticationEntryPoint))
+                // jwt 인증 필터
+                .addFilterBefore(jwtAuthenticationFilter, LogoutFilter.class)
         ;
         return http.build();
     }

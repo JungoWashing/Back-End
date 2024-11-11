@@ -3,10 +3,12 @@ package junggoin.Back_End.security.handler;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import junggoin.Back_End.domain.jwt.service.TokenService;
 import junggoin.Back_End.domain.member.RoleType;
 import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
 import junggoin.Back_End.security.CustomOAuth2User;
 import junggoin.Back_End.security.GoogleOAuth2UserInfo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -14,14 +16,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
+    private final TokenService tokenService;
 
     @Value("${flutter.uri-scheme}")
     private String flutterUri;
@@ -57,31 +61,26 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }else{
             targetUrl = serverUrl;
         }
-        String redirectUri;
 
-        String jsessionid =request.getRequestedSessionId();
+        String redirectUri, accessToken;
+        String email = oAuth2UserInfo.getEmail();
+        String role = isGuest ? RoleType.ROLE_GUEST.name() : customOAuth2User.getMemberInfo().getRole().name();
 
-        // 닉네임 작성 필요
-        if (isGuest) {
-            redirectUri = targetUrl+"?"
-            + "role="+URLEncoder.encode(RoleType.ROLE_GUEST.name(), StandardCharsets.UTF_8)+"&"
-            + "name="+URLEncoder.encode(oAuth2UserInfo.getName(), StandardCharsets.UTF_8)+"&"
-            + "email="+URLEncoder.encode(oAuth2UserInfo.getEmail(), StandardCharsets.UTF_8);
-
+        if (tokenService.isLoggedIn(email)) {
+            accessToken = tokenService.findAccessToken(email);
         } else {
-            MemberInfoResponse memberInfoResponse = customOAuth2User.getMemberInfo();
-            redirectUri = targetUrl+"?"
-            + "role="+URLEncoder.encode(memberInfoResponse.getRole().name(), StandardCharsets.UTF_8)+"&"
-            + "name="+URLEncoder.encode(memberInfoResponse.getName(), StandardCharsets.UTF_8)+"&"
-            + "email="+URLEncoder.encode(memberInfoResponse.getEmail(), StandardCharsets.UTF_8)+"&"
-            + "nickname="+URLEncoder.encode(memberInfoResponse.getNickname(), StandardCharsets.UTF_8)+"&"
-            + "profile_image_url"+URLEncoder.encode(memberInfoResponse.getProfileImageUrl(), StandardCharsets.UTF_8)+"&"
-            + "create_at"+URLEncoder.encode(memberInfoResponse.getCreateAt().toString(), StandardCharsets.UTF_8);
-        }
-        if (jsessionid != null) {
-            redirectUri += "&jsessionid=" + URLEncoder.encode(jsessionid, StandardCharsets.UTF_8);
+            accessToken = tokenService.createAccessToken(email, role);
         }
 
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("email", oAuth2UserInfo.getEmail());
+        if (isGuest) {
+            uriBuilder.queryParam("name", oAuth2UserInfo.getName());
+        }
+        uriBuilder.queryParam("role",  role)
+                .queryParam("token", accessToken);
+
+        redirectUri = uriBuilder.toUriString();
         response.sendRedirect(redirectUri);
         log.info("{}",redirectUri);
     }

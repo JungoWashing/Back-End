@@ -6,18 +6,25 @@ import junggoin.Back_End.domain.member.Member;
 import junggoin.Back_End.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Arrays;
+import java.util.Objects;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private final MemberService memberService;
+    @Value("${spring.security.oauth2.hosted-domain}")
+    private String[] hostedDomain;
 
     @Override
     @Transactional
@@ -31,6 +38,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // OAuth2 사용자 정보를 객체로 변환
         GoogleOAuth2UserInfo oauth2UserInfo = new GoogleOAuth2UserInfo(oAuth2User.getAttributes());
+
+        // 인하대 도메인 확인
+        if(Arrays.stream(hostedDomain).noneMatch(domain-> Objects.equals(oauth2UserInfo.getDomain(), domain))){
+            throw new OAuth2AuthenticationException(new OAuth2Error("email_domain_not_allowed"), "허용되지 않은 이메일 도메인 입니다");
+        }
 
         // email 로 DB 에서 회원을 찾아 없으면 신규 생성
         Member member = memberService.findMemberByEmail(oauth2UserInfo.getEmail())

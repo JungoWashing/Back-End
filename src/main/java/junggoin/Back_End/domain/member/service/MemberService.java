@@ -2,7 +2,6 @@ package junggoin.Back_End.domain.member.service;
 
 import junggoin.Back_End.domain.member.dto.MemberCheckNicknameResponse;
 import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
-import junggoin.Back_End.security.CustomOAuth2User;
 import junggoin.Back_End.security.GoogleOAuth2UserInfo;
 import junggoin.Back_End.domain.member.Member;
 import junggoin.Back_End.domain.member.RoleType;
@@ -10,10 +9,13 @@ import junggoin.Back_End.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.Optional;
 
 @Slf4j
@@ -45,9 +47,9 @@ public class MemberService {
     // 최초 구글 로그인 시 받은 정보를 토대로 입력할 수 있는 것들만 입력한 후 ROLE_GUEST 권한을 주고 Member Entity 를 생성함(회원 생성)
     // 이후 FrontEnd 에 유저 정보를 넘겨준 뒤, /api/members/join 에 request param 으로 nickname 을 put 요청으로 보내면 회원 가입 완료
     @Transactional
-    public MemberInfoResponse joinMember(CustomOAuth2User customOAuth2User, String nickname) {
-        Member member = memberRepository.findMemberByEmail(customOAuth2User.getUsername())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원: " + customOAuth2User.getUsername()));
+    public MemberInfoResponse joinMember(String email, String nickname) {
+        Member member = memberRepository.findMemberByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원: " + email));
 
         // 닉네임 중복 확인
         if (memberRepository.existsMemberByNickname(nickname)) {
@@ -59,15 +61,15 @@ public class MemberService {
         member.updateRole(RoleType.ROLE_USER);
 
         // SecurityContext 갱신
-        updateSecurityContextWithNewUser(new CustomOAuth2User(customOAuth2User.getOAuth2UserInfo(), member));
+        updateSecurityContextWithNewUser(new User(email,"",Collections.singletonList(new SimpleGrantedAuthority(member.getRole().name()))));
         return toMemberInfo(member);
     }
 
     // 닉네임 수정
     @Transactional
-    public MemberInfoResponse updateMemberNickname(CustomOAuth2User customOAuth2User, String nickname) {
-        Member member = memberRepository.findMemberByEmail(customOAuth2User.getUsername())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원: " + customOAuth2User.getUsername()));
+    public MemberInfoResponse updateMemberNickname(String email, String nickname) {
+        Member member = memberRepository.findMemberByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원: " + email));
 
         // 닉네임 중복 확인
         if (memberRepository.existsMemberByNickname(nickname)) {
@@ -76,8 +78,6 @@ public class MemberService {
 
         member.updateNickname(nickname);
 
-        // SecurityContext 갱신
-        updateSecurityContextWithNewUser(new CustomOAuth2User(customOAuth2User.getOAuth2UserInfo(), member));
         return toMemberInfo(member);
     }
 
@@ -85,12 +85,15 @@ public class MemberService {
     public MemberCheckNicknameResponse checkNickname(String nickname) {
         return new MemberCheckNicknameResponse(!memberRepository.existsMemberByNickname(nickname));
     }
+    
+    // 이메일로 회원정보 조회
+    public MemberInfoResponse getMemberInfo(String email) {
+        Member member =  memberRepository.findMemberByEmail(email).orElseThrow(() ->  new RuntimeException("존재하지 않는 회원: " + email));
+        return toMemberInfo(member);
+    }
 
     // SecurityContext 갱신
-    // SecurityContextHolder 에 저장되는 인증 정보(CustomOAuth2User)는 로그인 된 상태에서 유저의 정보를 불러올 때에도 사용됨
-    // Member 의 닉네임, Role 수정 후 CustomOAuth2User 에 저장된 Member 도 동기화 시켜주는 용도
-    // 이름과 프로필 이미지 Url 은 구글 로그인 할 때만 변경 됨
-    private void updateSecurityContextWithNewUser(CustomOAuth2User updatedUser) {
+    private void updateSecurityContextWithNewUser(User updatedUser) {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         updatedUser,  // 새 CustomOAuth2User

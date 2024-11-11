@@ -6,12 +6,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.NotBlank;
 import junggoin.Back_End.domain.member.dto.*;
-import junggoin.Back_End.security.CustomOAuth2User;
 import junggoin.Back_End.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,8 +34,8 @@ public class MemberController {
             content = @Content(schema = @Schema(implementation = MemberInfoResponse.class))
     )
     @GetMapping("/my-info")
-    public ResponseEntity<MemberInfoResponse> getMyInfo(@AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
-        return ResponseEntity.ok().body(customOAuth2User.getMemberInfo());
+    public ResponseEntity<MemberInfoResponse> getMyInfo(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok().body(memberService.getMemberInfo(user.getUsername()));
     }
 
     // 회원 가입
@@ -49,9 +49,9 @@ public class MemberController {
             content = @Content(schema = @Schema(implementation = MemberInfoResponse.class))
     )
     @PutMapping("/join")
-    public ResponseEntity<MemberInfoResponse> joinMember(@AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+    public ResponseEntity<MemberInfoResponse> joinMember(@AuthenticationPrincipal User user,
                                                          @NotBlank @RequestParam String nickname) {
-        return ResponseEntity.ok().body(memberService.joinMember(customOAuth2User, nickname));
+        return ResponseEntity.ok().body(memberService.joinMember(user.getUsername(), nickname));
     }
 
     // 닉네임 수정
@@ -65,9 +65,9 @@ public class MemberController {
             content = @Content(schema = @Schema(implementation = MemberInfoResponse.class))
     )
     @PutMapping("/edit-nickname")
-    public ResponseEntity<MemberInfoResponse> editMemberNickname(@AuthenticationPrincipal CustomOAuth2User customOAuth2User,
+    public ResponseEntity<MemberInfoResponse> editMemberNickname(@AuthenticationPrincipal User user,
                                                                  @NotBlank @RequestParam String nickname) {
-        return ResponseEntity.ok().body(memberService.updateMemberNickname(customOAuth2User, nickname));
+        return ResponseEntity.ok().body(memberService.updateMemberNickname(user.getUsername(), nickname));
     }
 
     // 닉네임 사용 가능 여부 확인

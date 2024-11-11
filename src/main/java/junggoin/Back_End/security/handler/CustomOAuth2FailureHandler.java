@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 @RequiredArgsConstructor
@@ -26,9 +26,7 @@ public class CustomOAuth2FailureHandler implements AuthenticationFailureHandler 
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-        // 순서 지키고 싶어서 LinkedHashMap 사용
-        // Response 클래스 만들어도 되지만 여기서 더 수정될 것 같진 않아서 이렇게 구현
-        Map<String, String> responseMap = new LinkedHashMap<>();
+        Map<String, String> responseMap = new HashMap<>();
         responseMap.put("error", "로그인 실패");
         responseMap.put("message", exception.getMessage());
 
