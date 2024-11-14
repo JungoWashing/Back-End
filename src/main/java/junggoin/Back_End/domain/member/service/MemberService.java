@@ -1,5 +1,6 @@
 package junggoin.Back_End.domain.member.service;
 
+import junggoin.Back_End.domain.jwt.service.TokenService;
 import junggoin.Back_End.domain.member.dto.MemberCheckNicknameResponse;
 import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
 import junggoin.Back_End.security.GoogleOAuth2UserInfo;
@@ -24,6 +25,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class MemberService {
     private final MemberRepository memberRepository;
+    private final TokenService tokenService;
 
     public Optional<Member> findMemberByEmail(String email) {
         return memberRepository.findMemberByEmail(email);
@@ -60,8 +62,10 @@ public class MemberService {
         member.updateNickname(nickname);
         member.updateRole(RoleType.ROLE_USER);
 
+        String token = tokenService.findAccessToken(email);
+
         // SecurityContext 갱신
-        updateSecurityContextWithNewUser(new User(email,"",Collections.singletonList(new SimpleGrantedAuthority(member.getRole().name()))));
+        updateSecurityContextWithNewUser(new User(email,token,Collections.singletonList(new SimpleGrantedAuthority(member.getRole().name()))));
         return toMemberInfo(member);
     }
 
