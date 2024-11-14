@@ -14,8 +14,8 @@ import java.util.Map;
 @Component
 public class CustomAuthorizationRequestResolver implements OAuth2AuthorizationRequestResolver {
     // 구글 로그인 허용할 이메일 도메인
-    @Value("${spring.security.oauth2.hosted-domain}")
-    private String hostedDomain;
+//    @Value("${spring.security.oauth2.hosted-domain}")
+//    private String[] hostedDomain;
 
     private final DefaultOAuth2AuthorizationRequestResolver defaultResolver;
 
@@ -46,7 +46,7 @@ public class CustomAuthorizationRequestResolver implements OAuth2AuthorizationRe
         }
 
         Map<String, Object> additionalParameters = new HashMap<>(authorizationRequest.getAdditionalParameters());
-        additionalParameters.put("hd", hostedDomain); // 이 도메인만 로그인 가능함
+//        additionalParameters.put("hd", hostedDomain); // 이 도메인만 로그인 가능함, 여러개의 도메인(inha.edu, inha.ac.kr)은 설정 불가해서 비활성화
         additionalParameters.put("prompt","consent"); // 사용자 동의 화면
 
         return OAuth2AuthorizationRequest.from(authorizationRequest)

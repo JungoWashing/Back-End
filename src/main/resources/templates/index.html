@@ -297,13 +297,23 @@
 <form id="logoutForm" action="/logout" method="POST" style="display:none;">
     <input type="hidden"/>
 </form>
-<a href="#" onclick="document.getElementById('logoutForm').submit();">로그아웃</a>
+<a href="#" onclick="logout()">로그아웃</a>
 
 <h2>Member Info</h2>
 <button onclick="getMyInfo()">Get My Info</button>
 
 <div class="response" id="responseOutput">Response will appear here...</div>
 <script>
+    // URL에서 tokenSet 값을 추출하고 저장
+    let token = null;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('token')) {
+        token = urlParams.get('token');
+        localStorage.setItem('authToken', token);
+    } else {
+        token = localStorage.getItem('authToken');
+    }
+
     document.getElementById("uploadForm").onsubmit = function(event) {
         event.preventDefault();
         const formData = new FormData(event.target);
@@ -355,9 +365,13 @@
 
     async function getMyInfo() {
         const url = `/api/members/my-info`;
-
         try {
-            const response = await fetch(url, { method: 'GET', credentials: 'include' });
+            const response = await fetch(url, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Authorization': token ? `${token}` : ''
+                },});
             const data = await response.json();
             displayResponse(data);
         } catch (error) {
@@ -385,6 +399,32 @@
             }
         } else {
             output.textContent = data;
+        }
+    }
+    async function logout() {
+        if (!token) {
+            alert('No tokenSet available');
+            return;
+        }
+
+        try {
+            const response = await fetch('/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `${token}`
+                },
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                alert('로그아웃 성공');
+                localStorage.removeItem('authToken');
+                window.location.reload();
+            } else {
+                alert('로그아웃 실패');
+            }
+        } catch (error) {
+            alert(error.message);
         }
     }
 </script>
