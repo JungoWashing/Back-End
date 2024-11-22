@@ -64,7 +64,8 @@ public class AuctionService {
                 .description(auction.getDescription())
                 .startingPrice(auction.getStartingPrice())
                 .endTime(auction.getExpiredAt())
-                .status(auction.getStatus())
+                .status(auction.getStatus().toString())
+                .highestBidPrice(auction.getWinningPrice())
                 .build();
     }
 

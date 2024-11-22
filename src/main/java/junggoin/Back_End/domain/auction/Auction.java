@@ -1,8 +1,27 @@
 package junggoin.Back_End.domain.auction;
 
-import jakarta.persistence.*;
+import static jakarta.persistence.EnumType.STRING;
+import static jakarta.persistence.FetchType.LAZY;
+import static jakarta.persistence.GenerationType.IDENTITY;
+import static lombok.AccessLevel.PROTECTED;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import junggoin.Back_End.domain.bid.Bid;
-import junggoin.Back_End.domain.image.Image;
 import junggoin.Back_End.domain.member.Member;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,15 +30,6 @@ import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import static jakarta.persistence.EnumType.STRING;
-import static jakarta.persistence.FetchType.LAZY;
-import static jakarta.persistence.GenerationType.IDENTITY;
-import static lombok.AccessLevel.PROTECTED;
 
 @Entity
 @Getter
@@ -52,8 +62,12 @@ public class Auction {
     @OrderBy(value = "bidPrice desc")
     private List<Bid> bids = new ArrayList<>();
 
-    @OneToMany(mappedBy = "auction", cascade = CascadeType.ALL)
-    private List<Image> images = new ArrayList<>();
+    @ElementCollection
+    @CollectionTable(
+            name = "auction_image",
+            joinColumns = {@JoinColumn(name = "image_id", referencedColumnName = "id")}
+    )
+    private List<String> imageUrls = new ArrayList<>();
 
     @Column(name = "expired_at")
     private LocalDateTime expiredAt;
@@ -77,7 +91,7 @@ public class Auction {
     @Builder
     public Auction(String itemName, List<Bid> bids, String description, int startingPrice,
             int immediatePurchasePrice, LocalDateTime expiredAt, int winningPrice, Status status,
-            Member member, List<Image> images) {
+            Member member) {
         this.itemName = itemName;
         this.description = description;
         this.startingPrice = startingPrice;
@@ -87,7 +101,6 @@ public class Auction {
         this.status = status;
         this.bids = bids;
         this.member = member;
-        this.images = images;
     }
 
     public void updateStatus(Status status) {
