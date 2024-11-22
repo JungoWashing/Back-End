@@ -5,6 +5,7 @@ import java.lang.management.ManagementFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import junggoin.Back_End.domain.auction.Auction;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.integration.redis.util.RedisLockRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +37,14 @@ public class AuctionService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
+    private final RedisLockRegistry redisLockRegistry;
+
     private static final String AUCTION_KEY_PREFIX = "Auction:ProductId:";
+
+    public Auction findById(Long auctionId) {
+        return auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
+    }
 
     // Method to create an auction and set it in Redis with a TTL
     public ProductRepDto createAuction(String email, ProductReqDto productReqDto) {
@@ -59,6 +68,15 @@ public class AuctionService {
                 .build();
     }
 
+    public List<Auction> findAll() {
+        return auctionRepository.findAll();
+    }
+
+    public Long deleteAuction(Long auctionId) {
+        Auction auction = findById(auctionId);
+        auctionRepository.delete(auction);
+        return auctionId;
+    }
 
     /*
     즉시구매 로직 작성
@@ -66,10 +84,22 @@ public class AuctionService {
     @Transactional
     public void immediatePurchase(Long auctionId) {
         String key = AUCTION_KEY_PREFIX + auctionId;
-        redisTemplate.expire(key,0,TimeUnit.SECONDS);
+        String lockKey = String.format("ProductId:%d", auctionId);
+
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
-        auction.updateStatus(Status.CLOSED);
+        try {
+            redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5), () -> {
+                if (auction.getStatus() == Status.CLOSED) {
+                    throw new RuntimeException("해당 경매가 종료되었습니다. auctionId : " + auctionId);
+                }
+                redisTemplate.expire(key, 0, TimeUnit.SECONDS);
+                auction.updateStatus(Status.CLOSED);
+            });
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     // Method to end an auction
@@ -77,12 +107,21 @@ public class AuctionService {
     public void endAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
-        auction.updateStatus(Status.CLOSED);
+        String lockKey = String.format("ProductId:%d", auctionId);
+        try {
+            redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5), () ->
+                    auction.updateStatus(Status.CLOSED)
+            );
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            throw new RuntimeException(e);
+        }
         log.info("Auction ended for product ID: " + auctionId);
     }
 
     // Redis expiration listener
     public class RedisExpirationListener implements MessageListener {
+
         @Override
         public void onMessage(Message message, byte[] pattern) {
             String key = message.toString();
@@ -109,6 +148,7 @@ public class AuctionService {
         return auction;
 
     }
+
 
     private Duration calculateTimeDifference(Timestamp start, Timestamp end) {
         Instant startInstant = start.toInstant();

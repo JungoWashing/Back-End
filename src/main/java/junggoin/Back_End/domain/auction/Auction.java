@@ -93,4 +93,8 @@ public class Auction {
     public void updateStatus(Status status) {
         this.status = status;
     }
+
+    public void updateWinningPrice(int price) {
+        this.winningPrice = price;
+    }
 }
