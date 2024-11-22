@@ -1,6 +1,7 @@
 package junggoin.Back_End.domain.bid.service;
 
 import junggoin.Back_End.domain.auction.Auction;
+import junggoin.Back_End.domain.auction.Status;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.bid.Bid;
 import junggoin.Back_End.domain.bid.dto.BidDto;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -30,9 +30,9 @@ public class BidService {
 
     @Transactional
     public void startBid(int price, Member bidder,Long auctionId) {
-        // 경매 확인
+        // 경매 상태 확인
         Auction auction = auctionService.findById(auctionId);
-        if (auction.getExpiredAt().isBefore(LocalDateTime.now())) {
+        if(auction.getStatus()== Status.CLOSED ) {
             throw new RuntimeException("종료된 경매");
         }
 
@@ -76,6 +76,14 @@ public class BidService {
         }
     }
 
+    // 낙찰자 찾기
+    @Transactional
+    public Long getWinnerId(Long auctionId){
+        Bid bid = bidRepository.findTopByAuctionIdOrderByDesc(auctionId).orElseThrow(()->new NoSuchElementException("존재하지 않는 입찰"));
+        return bid.getBidder().getId();
+    }
+
+    // 해당 경매 입찰 리스트
     @Transactional
     public List<Bid> getBids(Long auctionId) {
         return bidRepository.findAllByAuctionId(auctionId);
