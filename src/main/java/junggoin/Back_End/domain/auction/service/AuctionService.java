@@ -1,76 +1,125 @@
 package junggoin.Back_End.domain.auction.service;
 
+import jakarta.persistence.EntityNotFoundException;
+import java.lang.management.ManagementFactory;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 import junggoin.Back_End.domain.auction.Auction;
+import junggoin.Back_End.domain.auction.Status;
+import junggoin.Back_End.domain.auction.dto.ProductRepDto;
+import junggoin.Back_End.domain.auction.dto.ProductReqDto;
 import junggoin.Back_End.domain.auction.repository.AuctionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import junggoin.Back_End.domain.member.Member;
+import junggoin.Back_End.domain.member.service.MemberService;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+@RequiredArgsConstructor
 @Service
 public class AuctionService {
 
-    @Autowired
-    private AuctionRepository auctionRepository;
+    private static final Logger log = LoggerFactory.getLogger(AuctionService.class);
 
-    public ResponseEntity<Map<String, Object>> createAuction(Auction auction) {
-        Auction savedAuction = auctionRepository.save(Auction.builder()
-                .itemName(auction.getItemName())
+    private final AuctionRepository auctionRepository;
+
+    private final MemberService memberService;
+
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String AUCTION_KEY_PREFIX = "Auction:ProductId:";
+
+    // Method to create an auction and set it in Redis with a TTL
+    public ProductRepDto createAuction(String email, ProductReqDto productReqDto) {
+        Auction auction = createProduct(email, productReqDto);
+        Timestamp currentTime = Timestamp.from(Instant.now());
+        long durationInSeconds = calculateTimeDifference(currentTime,
+                Timestamp.valueOf(auction.getExpiredAt())).getSeconds();
+
+        String pid = ManagementFactory.getRuntimeMXBean().getName();
+        String key = AUCTION_KEY_PREFIX + auction.getId();
+        redisTemplate.opsForValue().set(key, pid);
+        redisTemplate.expire(key, durationInSeconds, TimeUnit.SECONDS);
+        log.info("Auction sta₩rted for product ID: " + auction.getId());
+
+        return ProductRepDto.builder()
+                .productName(productReqDto.getProductName())
                 .description(auction.getDescription())
                 .startingPrice(auction.getStartingPrice())
-                .immediatePurchasePrice(auction.getImmediatePurchasePrice())
-                .expiredAt(auction.getExpiredAt())
-                .winningPrice(auction.getWinningPrice())
+                .endTime(auction.getExpiredAt())
                 .status(auction.getStatus())
-                .member(auction.getMember())
-                .build());
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", savedAuction.getId());
-        response.put("message", "Auction created successfully");
-        return ResponseEntity.ok(response);
+                .build();
     }
 
-    public ResponseEntity<Auction> getAuctionById(Long id) {
-        return auctionRepository.findById(id)
-                .map(auction -> ResponseEntity.ok().body(auction))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+    /*
+    즉시구매 로직 작성
+     */
+    @Transactional
+    public void immediatePurchase(Long auctionId) {
+        String key = AUCTION_KEY_PREFIX + auctionId;
+        redisTemplate.expire(key,0,TimeUnit.SECONDS);
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
+        auction.updateStatus(Status.CLOSED);
     }
 
-    public ResponseEntity<List<Auction>> getAllAuctions() {
-        List<Auction> auctions = auctionRepository.findAll();
-        return ResponseEntity.ok(auctions);
+    // Method to end an auction
+    @Transactional
+    public void endAuction(Long auctionId) {
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
+        auction.updateStatus(Status.CLOSED);
+        log.info("Auction ended for product ID: " + auctionId);
     }
 
-    public ResponseEntity<Map<String, Object>> updateAuction(Long id, Auction auctionDetails) {
-        return auctionRepository.findById(id).map(auction -> {
-            Auction updatedAuction = Auction.builder()
-                    .id(auction.getId())
-                    .itemName(auctionDetails.getItemName())
-                    .description(auctionDetails.getDescription())
-                    .startingPrice(auctionDetails.getStartingPrice())
-                    .immediatePurchasePrice(auctionDetails.getImmediatePurchasePrice())
-                    .expiredAt(auctionDetails.getExpiredAt())
-                    .winningPrice(auctionDetails.getWinningPrice())
-                    .status(auctionDetails.getStatus())
-                    .member(auctionDetails.getMember())
-                    .build();
-            auctionRepository.save(updatedAuction);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Auction updated successfully");
-            return ResponseEntity.ok(response);
-        }).orElseGet(() -> new ResponseEntity<>(Map.of("message", "Auction not found"), HttpStatus.NOT_FOUND));
+    // Redis expiration listener
+    public class RedisExpirationListener implements MessageListener {
+        @Override
+        public void onMessage(Message message, byte[] pattern) {
+            String key = message.toString();
+            if (key.startsWith(AUCTION_KEY_PREFIX)) {
+                String productId = key.substring(AUCTION_KEY_PREFIX.length());
+                endAuction(Long.valueOf(productId)); // End the auction transaction
+            }
+        }
     }
 
-    public ResponseEntity<Map<String, Object>> deleteAuction(Long id) {
-        return auctionRepository.findById(id).map(auction -> {
-            auctionRepository.delete(auction);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Auction deleted successfully");
-            return ResponseEntity.ok(response);
-        }).orElseGet(() -> new ResponseEntity<>(Map.of("message", "Auction not found"), HttpStatus.NOT_FOUND));
+    private Auction createProduct(String email, ProductReqDto productReqDto) {
+        Member member = memberService.findMemberByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원: " + email));
+        Auction auction = Auction.builder()
+                .itemName(productReqDto.getProductName())
+                .description(productReqDto.getDescription())
+                .member(member)
+                .startingPrice(productReqDto.getStartingPrice())
+                .expiredAt(productReqDto.getEndTime())
+                .immediatePurchasePrice(productReqDto.getImmediatePurchasePrice())
+                .status(Status.BIDDING)
+                .build();
+        auctionRepository.save(auction);
+        return auction;
+
     }
+
+    private Duration calculateTimeDifference(Timestamp start, Timestamp end) {
+        Instant startInstant = start.toInstant();
+        Instant endInstant = end.toInstant();
+
+        Duration duration = Duration.between(startInstant, endInstant);
+
+        if (duration.isNegative()) {
+            throw new IllegalArgumentException("종료 시간이 시작 시간보다 빠릅니다.");
+        }
+        return duration;
+    }
+
 }

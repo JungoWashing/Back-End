@@ -41,7 +41,7 @@ public class ChatRoomService {
     }
 
     public ChatRoom findRoomById(String roomId) {
-        return chatRoomRepository.findChatRoomByName(roomId).orElseThrow(() -> new IllegalArgumentException("room not found with id: " + roomId));
+        return chatRoomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("room not found with id: " + roomId));
     }
 
     public List<ChatRoom> getChatRoomsByMemberId(Long memberId) {

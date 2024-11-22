@@ -7,6 +7,7 @@ import junggoin.Back_End.domain.member.Member;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -22,6 +23,7 @@ import static lombok.AccessLevel.PROTECTED;
 
 @Entity
 @Getter
+@Setter
 @EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor(access = PROTECTED)
 public class Auction {
@@ -73,10 +75,9 @@ public class Auction {
     private Member member;
 
     @Builder
-    public Auction(Long id, String itemName, List<Bid> bids, String description, int startingPrice,
+    public Auction(String itemName, List<Bid> bids, String description, int startingPrice,
             int immediatePurchasePrice, LocalDateTime expiredAt, int winningPrice, Status status,
             Member member, List<Image> images) {
-        this.id = id;
         this.itemName = itemName;
         this.description = description;
         this.startingPrice = startingPrice;
@@ -87,5 +88,9 @@ public class Auction {
         this.bids = bids;
         this.member = member;
         this.images = images;
+    }
+
+    public void updateStatus(Status status) {
+        this.status = status;
     }
 }
