@@ -4,7 +4,8 @@ import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.Status;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.bid.Bid;
-import junggoin.Back_End.domain.bid.dto.BidDto;
+import junggoin.Back_End.domain.bid.dto.BidRequestDTO;
+import junggoin.Back_End.domain.bid.dto.BidResponseDTO;
 import junggoin.Back_End.domain.bid.repository.BidRepository;
 import junggoin.Back_End.domain.member.Member;
 import junggoin.Back_End.domain.member.service.MemberService;
@@ -29,7 +30,7 @@ public class BidService {
     private final RedisLockRegistry redisLockRegistry;
 
     @Transactional
-    public void startBid(int price, Member bidder,Long auctionId) {
+    public BidResponseDTO startBid(int price, Member bidder,Long auctionId) {
         // 경매 상태 확인
         Auction auction = auctionService.findById(auctionId);
         if(auction.getStatus()== Status.CLOSED ) {
@@ -57,19 +58,25 @@ public class BidService {
         bidRepository.save(bid);
 
         auction.updateWinningPrice(price);
+
+
+        return BidResponseDTO.builder()
+                .bidId(bid.getId())
+                .bidderId(bidder.getId())
+                .price(price)
+                .auctionId(auctionId)
+                .build();
     }
 
     @Synchronized
     @Transactional
-    public void bidAuction(BidDto bidDto) {
-        log.info("{}",bidDto.getEmail());
-        Member bidder = memberService.findMemberByEmail(bidDto.getEmail()).orElseThrow(()-> new NoSuchElementException("존재하지 않는 회원"));
-        String lockKey = String.format("ProductId:%d", bidDto.getAuctionId());
+    public BidResponseDTO bidAuction(Long auctionId,BidRequestDTO bidRequestDto) {
+        log.info("{}", bidRequestDto.getEmail());
+        Member bidder = memberService.findMemberByEmail(bidRequestDto.getEmail()).orElseThrow(()-> new NoSuchElementException("존재하지 않는 회원"));
+        String lockKey = String.format("ProductId:%d", auctionId);
 
         try {
-            redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5) ,() -> {
-                startBid(bidDto.getPrice(), bidder,bidDto.getAuctionId());
-            });
+            return redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5) ,() -> startBid(bidRequestDto.getPrice(), bidder, auctionId));
         } catch (Exception e) {
             log.info(e.getMessage());
             throw new RuntimeException(e);
@@ -79,7 +86,7 @@ public class BidService {
     // 낙찰자 찾기
     @Transactional
     public Long getWinnerId(Long auctionId){
-        Bid bid = bidRepository.findTopByAuctionIdOrderByDesc(auctionId).orElseThrow(()->new NoSuchElementException("존재하지 않는 입찰"));
+            Bid bid = bidRepository.findTopByAuctionIdOrderByBidPriceDesc(auctionId).orElseThrow(()->new NoSuchElementException("존재하지 않는 입찰"));
         return bid.getBidder().getId();
     }
 

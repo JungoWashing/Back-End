@@ -110,4 +110,8 @@ public class Auction {
     public void updateWinningPrice(int price) {
         this.winningPrice = price;
     }
+
+    public void updateImageUrls(List<String> imageUrls) {
+        this.imageUrls =imageUrls;
+    }
 }

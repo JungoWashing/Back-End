@@ -6,13 +6,17 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class BidResDto {
+public class BidResponseDTO {
+    Long bidId;
     Long auctionId;
+    Long bidderId;
     int price;
 
     @Builder
-    public BidResDto(Long auctionId, int price) {
+    BidResponseDTO(Long bidId, Long auctionId, Long bidderId, int price){
+        this.bidId = bidId;
         this.auctionId = auctionId;
+        this.bidderId = bidderId;
         this.price = price;
     }
 }
