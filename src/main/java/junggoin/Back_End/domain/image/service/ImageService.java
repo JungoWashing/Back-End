@@ -33,7 +33,7 @@ public class ImageService {
     private final AmazonS3 amazonS3;
     private final AuctionService auctionService;
 
-    @Value("${cloud.aws.s3.bucketName}")
+    @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
     @Transactional
@@ -65,6 +65,7 @@ public class ImageService {
         }
     }
 
+    //
     private void validateImageFileExtention(String filename) {
         int lastDotIndex = filename.lastIndexOf(".");
         if (lastDotIndex == -1) {

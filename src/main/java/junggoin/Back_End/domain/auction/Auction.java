@@ -65,7 +65,7 @@ public class Auction {
     @ElementCollection
     @CollectionTable(
             name = "auction_image",
-            joinColumns = {@JoinColumn(name = "image_id", referencedColumnName = "id")}
+            joinColumns = {@JoinColumn(name = "image_id", referencedColumnName = "auction_id")}
     )
     private List<String> imageUrls = new ArrayList<>();
 
