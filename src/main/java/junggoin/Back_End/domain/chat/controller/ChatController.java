@@ -8,7 +8,7 @@ import junggoin.Back_End.domain.chat.redis.RedisPublisher;
 import junggoin.Back_End.domain.chat.service.ChatRoomService;
 import junggoin.Back_End.domain.chat.service.ChatService;
 import junggoin.Back_End.domain.member.Member;
-import junggoin.Back_End.domain.member.repository.MemberRepository;
+import junggoin.Back_End.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
@@ -21,13 +21,13 @@ public class ChatController {
     private final RedisPublisher redisPublisher;
     private final ChatRoomService chatRoomService;
     private final ChatService chatMessageService;
-    private final MemberRepository memberRepository;
+    private final MemberService memberService;
 
     @MessageMapping("/chat/message")
     public void sendMessage(@RequestBody SendMessageRequestDTO message) {
         ChatRoom chatRoom = chatRoomService.findRoomById(message.getRoomId());
 
-        Member sender = memberRepository.findById(message.getMemberId()).orElseThrow();
+        Member sender = memberService.findMemberByEmail(message.getEmail()).orElseThrow();
         ChatMessage chatMessage = ChatMessage.builder()
                 .chatRoom(chatRoom)
                 .message(message.getMessage())

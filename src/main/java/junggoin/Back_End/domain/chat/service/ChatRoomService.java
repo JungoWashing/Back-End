@@ -14,7 +14,7 @@ import junggoin.Back_End.domain.chat.redis.RedisSubscriber;
 import junggoin.Back_End.domain.chat.repository.ChatRoomRepository;
 import junggoin.Back_End.domain.chat.repository.MemberChatRoomRepository;
 import junggoin.Back_End.domain.member.Member;
-import junggoin.Back_End.domain.member.repository.MemberRepository;
+import junggoin.Back_End.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -30,7 +30,7 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final RedisSubscriber redisSubscriber;
     private final RedisMessageListenerContainer redisMessageListenerContainer;
-    private final MemberRepository memberRepository;
+    private final MemberService memberService;
     private final MemberChatRoomRepository memberChatRoomRepository;
 
     // 채팅방에 대한 토픽을 저장할 맵
@@ -44,20 +44,20 @@ public class ChatRoomService {
         return chatRoomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("room not found with id: " + roomId));
     }
 
-    public List<ChatRoom> getChatRoomsByMemberId(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + memberId));
+    public List<ChatRoom> getChatRoomsByMember(String email) {
+        Member member = memberService.findMemberByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found with email: " + email));
 
         return member.getMemberChatRooms().stream()
                 .map(MemberChatRoom::getChatRoom)
                 .collect(Collectors.toList());
     }
 
-    public ChatRoom createChatRoom(Long memberId1, Long memberId2) {
-        Member member1 = memberRepository.findById(memberId1)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + memberId1));
-        Member member2 = memberRepository.findById(memberId2)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + memberId2));
+    public ChatRoom createChatRoom(String firstMemberEmail, String secondMemberEmail) {
+        Member member1 = memberService.findMemberByEmail(firstMemberEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + firstMemberEmail));
+        Member member2 = memberService.findMemberByEmail(secondMemberEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + secondMemberEmail));
 
 
         ChatRoom chatRoom = ChatRoom.builder()

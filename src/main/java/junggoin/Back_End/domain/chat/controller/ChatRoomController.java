@@ -22,16 +22,10 @@ public class ChatRoomController {
     private final ChatRoomService chatRoomService;
     private final ChatService chatService;
 
-    // 모든 채팅방 조회 - JSON 응답으로 채팅방 리스트 반환
-    @GetMapping("/rooms")
-    public List<ChatRoom> getAllRooms() {
-        return chatRoomService.findAll();
-    }
-
     // Create a new room
     @PostMapping("/room/create")
     public ResponseEntity<ChatRoom> createChatRoom(@RequestBody CreateChatRoomRequest request) {
-        ChatRoom chatRoom = chatRoomService.createChatRoom(request.getMemberId1(), request.getMemberId2());
+        ChatRoom chatRoom = chatRoomService.createChatRoom(request.getFirstMemberEmail(), request.getSecondMemberEmail());
         return ResponseEntity.ok(chatRoom);
     }
 
@@ -56,9 +50,9 @@ public class ChatRoomController {
      * ]
      */
 
-    @GetMapping("/member/chatrooms")
-    public ResponseEntity<List<ChatRoom>> getChatRoomsByMemberId(@RequestParam(name = "memberId") Long memberId) {
-        List<ChatRoom> chatRooms = chatRoomService.getChatRoomsByMemberId(memberId);
+    @GetMapping("/member/rooms")
+    public ResponseEntity<List<ChatRoom>> getChatRoomsByMemberId(@RequestParam(name = "email") String email) {
+        List<ChatRoom> chatRooms = chatRoomService.getChatRoomsByMember(email);
         return ResponseEntity.ok(chatRooms);
     }
 

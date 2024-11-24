@@ -9,14 +9,17 @@ import lombok.extern.jackson.Jacksonized;
 @Jacksonized
 @Builder
 public class SendMessageRequestDTO {
+
     private String roomId;
-    private Long memberId;
+    private String email;
     private String message;
     private String messageType;
 
-    public SendMessageRequestDTO(@JsonProperty("roomId") String roomId, @JsonProperty("memberId") Long memberId, @JsonProperty("message") String message, @JsonProperty("messageType") String messageType) {
+    public SendMessageRequestDTO(@JsonProperty("roomId") String roomId,
+            @JsonProperty("memberId") String email, @JsonProperty("message") String message,
+            @JsonProperty("messageType") String messageType) {
         this.roomId = roomId;
-        this.memberId = memberId;
+        this.email = email;
         this.message = message;
         this.messageType = messageType;
     }

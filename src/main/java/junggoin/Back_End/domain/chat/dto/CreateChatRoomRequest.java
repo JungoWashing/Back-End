@@ -4,6 +4,6 @@ import lombok.Getter;
 
 @Getter
 public class CreateChatRoomRequest {
-    Long memberId1;
-    Long memberId2;
+    String firstMemberEmail;
+    String secondMemberEmail;
 }
