@@ -41,38 +41,45 @@ public class AuctionService {
 
     private static final String AUCTION_KEY_PREFIX = "Auction:ProductId:";
 
+    // 경매 id로 경매 조회
     public Auction findById(Long auctionId) {
         return auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
     }
 
+    // 모든 경매 조회
+    public List<Auction> findAll() {
+        return auctionRepository.findAll();
+    }
+
+    // 이메일로 경매 조회(판매 내역 조회에 필요)
+    public List<Auction> findByEmail(String email) {
+        return auctionRepository.findByMemberEmail(email);
+    }
+
     // Method to create an auction and set it in Redis with a TTL
+    @Transactional
     public ProductRepDto createAuction(String email, ProductReqDto productReqDto) {
         Auction auction = createProduct(email, productReqDto);
         Timestamp currentTime = Timestamp.from(Instant.now());
         long durationInSeconds = calculateTimeDifference(currentTime,
                 Timestamp.valueOf(auction.getExpiredAt())).getSeconds();
-
         String pid = ManagementFactory.getRuntimeMXBean().getName();
         String key = AUCTION_KEY_PREFIX + auction.getId();
+
+        setAuctionExpire(key,pid,durationInSeconds);
+
+        log.info("Auction started for product ID: " + auction.getId());
+
+        return toProductRepDto(auction);
+    }
+
+    public void setAuctionExpire(String key, String pid, long durationInSeconds) {
         redisTemplate.opsForValue().set(key, pid);
         redisTemplate.expire(key, durationInSeconds, TimeUnit.SECONDS);
-        log.info("Auction sta₩rted for product ID: " + auction.getId());
-
-        return ProductRepDto.builder()
-                .productName(productReqDto.getProductName())
-                .description(auction.getDescription())
-                .startingPrice(auction.getStartingPrice())
-                .endTime(auction.getExpiredAt())
-                .status(auction.getStatus().toString())
-                .highestBidPrice(auction.getWinningPrice())
-                .build();
     }
 
-    public List<Auction> findAll() {
-        return auctionRepository.findAll();
-    }
-
+    // 경매 삭제
     public Long deleteAuction(Long auctionId) {
         Auction auction = findById(auctionId);
         auctionRepository.delete(auction);
@@ -133,6 +140,7 @@ public class AuctionService {
         }
     }
 
+    // 경매 생성
     private Auction createProduct(String email, ProductReqDto productReqDto) {
         Member member = memberService.findMemberByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원: " + email));
@@ -163,4 +171,17 @@ public class AuctionService {
         return duration;
     }
 
+    public ProductRepDto toProductRepDto(Auction auction) {
+        return ProductRepDto.builder()
+                .auctionId(auction.getId())
+                .sellerEmail(auction.getMember().getEmail())
+                .productName(auction.getItemName())
+                .immediatePurchasePrice(auction.getImmediatePurchasePrice())
+                .highestBidPrice(auction.getWinningPrice())
+                .startingPrice(auction.getStartingPrice())
+                .description(auction.getDescription())
+                .endTime(auction.getExpiredAt())
+                .status(auction.getStatus().name())
+                .build();
+    }
 }

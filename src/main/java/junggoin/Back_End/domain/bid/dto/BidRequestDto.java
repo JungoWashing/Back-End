@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class BidRequestDTO {
-    private String email;
+public class BidRequestDto {
+    private String bidderEmail;
     private int price;
 }

@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class ProductRepDto {
+    private Long auctionId;
+    private String sellerEmail;
     private String productName;
     private String description;
     private int startingPrice;
@@ -17,8 +19,10 @@ public class ProductRepDto {
     private int highestBidPrice;
 
     @Builder
-    public ProductRepDto(String productName, String description, int startingPrice,
+    public ProductRepDto(Long auctionId, String sellerEmail,String productName, String description, int startingPrice,
             LocalDateTime endTime, String status, int immediatePurchasePrice, int highestBidPrice) {
+        this.auctionId = auctionId;
+        this.sellerEmail = sellerEmail;
         this.productName = productName;
         this.description = description;
         this.startingPrice = startingPrice;

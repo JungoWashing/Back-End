@@ -1,19 +1,14 @@
 package junggoin.Back_End.domain.auction.controller;
 
 import java.util.List;
+
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.dto.ProductRepDto;
 import junggoin.Back_End.domain.auction.dto.ProductReqDto;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @AllArgsConstructor
@@ -22,6 +17,7 @@ public class AuctionController {
 
     private final AuctionService auctionService;
 
+    // 경매 게시
     @PostMapping("/create/{email}")
     public ResponseEntity<ProductRepDto> createAuction(
             @PathVariable("email") String email,
@@ -30,27 +26,25 @@ public class AuctionController {
         return ResponseEntity.ok(auctionService.createAuction(email, productReqDto));
     }
 
+    // 경매 조회
     @GetMapping("/{id}")
     public ResponseEntity<ProductRepDto> getAuctionById(@PathVariable("id") Long id) {
         Auction auction = auctionService.findById(id);
-        return ResponseEntity.ok(ProductRepDto.builder()
-                .productName(auction.getItemName())
-                .description(auction.getDescription())
-                .startingPrice(auction.getStartingPrice())
-                .endTime(auction.getExpiredAt())
-                .highestBidPrice(auction.getWinningPrice())
-                .status(auction.getStatus().toString())
-                .build());
+        return ResponseEntity.ok(auctionService.toProductRepDto(auction));
     }
 
+    // 경매 전체 조회
     @GetMapping("/all")
-    public ResponseEntity<List<Auction>> getAllAuctions() {
-        return ResponseEntity.ok(auctionService.findAll());
+    public ResponseEntity<List<ProductRepDto>> getAllAuctions() {
+        List<ProductRepDto> productRepDtos = auctionService.findAll().stream().map(auctionService::toProductRepDto).toList();
+        return ResponseEntity.ok(productRepDtos);
     }
 
+    // 경매 삭제
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity deleteAuction(@PathVariable("id") Long id) {
-        auctionService.deleteAuction(id);
-        return ResponseEntity.ok("경매 삭제 성공");
+    public ResponseEntity<String> deleteAuction(@PathVariable("id") Long id) {
+        Long auctionId = auctionService.deleteAuction(id);
+
+        return ResponseEntity.ok("경매 삭제 성공: "+auctionId);
     }
 }
