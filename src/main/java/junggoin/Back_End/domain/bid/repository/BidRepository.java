@@ -1,5 +1,6 @@
 package junggoin.Back_End.domain.bid.repository;
 
+import junggoin.Back_End.domain.auction.AuctionView;
 import junggoin.Back_End.domain.bid.Bid;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -13,5 +14,5 @@ public interface BidRepository extends JpaRepository<Bid,Long> {
 
     Optional<Bid> findTopByAuctionIdOrderByBidPriceDesc(Long auctionId);
 
-    List<Bid> findDistinctByBidderEmail(String email);
+    List<AuctionView> findDistinctAuctionByBidderEmail(String email);
 }

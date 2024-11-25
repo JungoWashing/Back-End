@@ -6,6 +6,7 @@ import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.dto.ProductRepDto;
 import junggoin.Back_End.domain.auction.dto.ProductReqDto;
 import junggoin.Back_End.domain.auction.service.AuctionService;
+import junggoin.Back_End.domain.bid.service.BidService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuctionController {
 
     private final AuctionService auctionService;
+    private final BidService bidService;
 
     // 경매 게시
     @PostMapping("/create/{email}")
@@ -46,5 +48,17 @@ public class AuctionController {
         Long auctionId = auctionService.deleteAuction(id);
 
         return ResponseEntity.ok("경매 삭제 성공: "+auctionId);
+    }
+
+    // 판매 내역 조회
+    @GetMapping("/sellers/{email}/history")
+    public ResponseEntity<List<ProductRepDto>> getAuctionBySeller(@PathVariable("email") String email) {
+        return ResponseEntity.ok(auctionService.findByEmail(email).stream().map(auctionService::toProductRepDto).toList());
+    }
+
+    // 구매 내역 조회
+    @GetMapping("/bidders/{email}/history")
+    public ResponseEntity<List<ProductRepDto>> getAuctionByBidder(@PathVariable("email") String email) {
+        return ResponseEntity.ok(bidService.findAuctionByEmail(email).stream().map(auctionService::toProductRepDto).toList());
     }
 }

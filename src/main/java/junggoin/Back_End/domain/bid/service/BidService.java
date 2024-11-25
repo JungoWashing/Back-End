@@ -1,6 +1,7 @@
 package junggoin.Back_End.domain.bid.service;
 
 import junggoin.Back_End.domain.auction.Auction;
+import junggoin.Back_End.domain.auction.AuctionView;
 import junggoin.Back_End.domain.auction.Status;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.bid.Bid;
@@ -91,8 +92,8 @@ public class BidService {
 
     // 입찰한 경매 찾기 (구매/입찰 내역 조회에 필요)
     public List<Auction> findAuctionByEmail(String email){
-        List<Bid> bids= bidRepository.findDistinctByBidderEmail(email);
-        return bids.stream().map(Bid::getAuction).collect(Collectors.toList());
+        List<AuctionView> auctionViews= bidRepository.findDistinctAuctionByBidderEmail(email);
+        return auctionViews.stream().map(AuctionView::getAuction).collect(Collectors.toList());
     }
 
     // 해당 경매 입찰 리스트
