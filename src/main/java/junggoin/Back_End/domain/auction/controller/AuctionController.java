@@ -20,7 +20,7 @@ public class AuctionController {
     private final BidService bidService;
 
     // 경매 게시
-    @PostMapping("/create/{email}")
+    @PostMapping("/{email}")
     public ResponseEntity<ProductRepDto> createAuction(
             @PathVariable("email") String email,
             @RequestBody ProductReqDto productReqDto
@@ -36,14 +36,14 @@ public class AuctionController {
     }
 
     // 경매 전체 조회
-    @GetMapping("/all")
+    @GetMapping("/")
     public ResponseEntity<List<ProductRepDto>> getAllAuctions() {
         List<ProductRepDto> productRepDtos = auctionService.findAll().stream().map(auctionService::toProductRepDto).toList();
         return ResponseEntity.ok(productRepDtos);
     }
 
     // 경매 삭제
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteAuction(@PathVariable("id") Long id) {
         Long auctionId = auctionService.deleteAuction(id);
 
@@ -51,13 +51,13 @@ public class AuctionController {
     }
 
     // 판매 내역 조회
-    @GetMapping("/sellers/{email}/history")
+    @GetMapping("/{email}/sell-history")
     public ResponseEntity<List<ProductRepDto>> getAuctionBySeller(@PathVariable("email") String email) {
         return ResponseEntity.ok(auctionService.findByEmail(email).stream().map(auctionService::toProductRepDto).toList());
     }
 
     // 구매 내역 조회
-    @GetMapping("/bidders/{email}/history")
+    @GetMapping("/{email}/bid-history")
     public ResponseEntity<List<ProductRepDto>> getAuctionByBidder(@PathVariable("email") String email) {
         return ResponseEntity.ok(bidService.findAuctionByEmail(email).stream().map(auctionService::toProductRepDto).toList());
     }

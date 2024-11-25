@@ -16,7 +16,7 @@ public class BidController {
     private final BidService bidService;
 
     // 입찰하기
-    @PostMapping("{auctionId}/bid")
+    @PostMapping("{auctionId}/bids")
     public ResponseEntity<BidResponseDto> bidAuction(@PathVariable Long auctionId, @RequestBody
     BidRequestDto bidRequestDto) throws InterruptedException, TimeoutException {
         return ResponseEntity.ok(bidService.bidAuction(auctionId,bidRequestDto)) ;
