@@ -3,6 +3,8 @@ package junggoin.Back_End.domain.bid.service;
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.AuctionView;
 import junggoin.Back_End.domain.auction.Status;
+import junggoin.Back_End.domain.auction.exception.BidNotAllowedException;
+import junggoin.Back_End.domain.auction.exception.ClosedAuctionException;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.bid.Bid;
 import junggoin.Back_End.domain.bid.dto.BidRequestDto;
@@ -38,16 +40,15 @@ public class BidService {
         // 경매 상태 확인
         Auction auction = auctionService.findById(auctionId);
         if(auction.getStatus()== Status.CLOSED ) {
-            throw new RuntimeException("종료된 경매");
+            throw new ClosedAuctionException("종료된 경매");
         }
 
         // 본인 확인
         if(auction.getMember().equals(bidder)) {
-            throw new RuntimeException("본인의 경매에는 입찰할 수 없습니다");
+            throw new BidNotAllowedException("본인의 경매에는 입찰할 수 없습니다");
         }
 
         // 입찰가 검증
-
         int startingPrice = auction.getStartingPrice();
         if(price< auction.getStartingPrice()){
             throw new IllegalArgumentException("시작 입찰가부터 입찰 가능합니다: " + startingPrice);
@@ -75,12 +76,12 @@ public class BidService {
     // 경매 입찰 락
     @Synchronized
     @Transactional
-    public BidResponseDto bidAuction(Long auctionId, BidRequestDto bidRequestDto) throws InterruptedException, TimeoutException {
+    public BidResponseDto bidAuction(Long id, BidRequestDto bidRequestDto) throws InterruptedException, TimeoutException {
         log.info("{}", bidRequestDto.getBidderEmail());
         Member bidder = memberService.findMemberByEmail(bidRequestDto.getBidderEmail()).orElseThrow(()-> new NoSuchElementException("존재하지 않는 회원: "+bidRequestDto.getBidderEmail()));
-        String lockKey = String.format("ProductId:%d", auctionId);
+        String lockKey = String.format("ProductId:%d", id);
 
-        return redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5) ,() -> startBid(bidRequestDto.getPrice(), bidder, auctionId));
+        return redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5) ,() -> startBid(bidRequestDto.getPrice(), bidder, id));
     }
 
     // 낙찰자 찾기 (채팅방 생성에 필요)

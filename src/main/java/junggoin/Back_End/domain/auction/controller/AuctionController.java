@@ -39,7 +39,7 @@ public class AuctionController {
     }
 
     // 경매 전체 조회
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<List<ProductRepDto>> getAllAuctions() {
         List<ProductRepDto> productRepDtos = auctionService.findAll().stream().map(auctionService::toProductRepDto).toList();
         return ResponseEntity.ok(productRepDtos);
@@ -55,7 +55,7 @@ public class AuctionController {
 
     // 경매 입찰
     @PostMapping("/{id}/bids")
-    public ResponseEntity<BidResponseDto> bidAuction(@PathVariable Long id, @RequestBody
+    public ResponseEntity<BidResponseDto> bidAuction(@PathVariable("id") Long id, @RequestBody
     BidRequestDto bidRequestDto) throws InterruptedException, TimeoutException {
         return ResponseEntity.ok(bidService.bidAuction(id,bidRequestDto)) ;
     }

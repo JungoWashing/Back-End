@@ -3,6 +3,8 @@ package junggoin.Back_End.domain.exception;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.jsonwebtoken.io.IOException;
 import jakarta.persistence.EntityNotFoundException;
+import junggoin.Back_End.domain.auction.exception.BidNotAllowedException;
+import junggoin.Back_End.domain.auction.exception.ClosedAuctionException;
 import junggoin.Back_End.domain.exception.dto.ExceptionResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -45,6 +47,24 @@ public class GlobalExceptionHandler {
     // 채팅 메세지 변환 예외
     @ExceptionHandler(JsonProcessingException.class)
     protected ResponseEntity<ExceptionResponseDto> handleJsonProcessingException(JsonProcessingException ex) {
+        return ResponseEntity.internalServerError().body(toExceptionDto(ex));
+    }
+
+    // 종료된 경매 예외
+    @ExceptionHandler(ClosedAuctionException.class)
+    protected ResponseEntity<ExceptionResponseDto> handleClosedAuctionException(ClosedAuctionException ex) {
+        return ResponseEntity.internalServerError().body(toExceptionDto(ex));
+    }
+
+    // 입찰 불가 예외
+    @ExceptionHandler(BidNotAllowedException.class)
+    protected ResponseEntity<ExceptionResponseDto> handleBidNotAllowedException(BidNotAllowedException ex) {
+        return ResponseEntity.internalServerError().body(toExceptionDto(ex));
+    }
+
+    // 그외 예외
+    @ExceptionHandler(RuntimeException.class)
+    protected ResponseEntity<ExceptionResponseDto> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity.internalServerError().body(toExceptionDto(ex));
     }
 
