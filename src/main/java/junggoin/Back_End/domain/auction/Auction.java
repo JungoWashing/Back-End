@@ -17,11 +17,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import junggoin.Back_End.domain.bid.Bid;
+import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.member.Member;
 import lombok.Builder;
 import lombok.Getter;
@@ -88,6 +90,10 @@ public class Auction {
     @Getter
     private Member member;
 
+    @OneToOne
+    @JoinColumn(name = "room_id")
+    private ChatRoom chatRoom;
+
     @Builder
     public Auction(String itemName, List<Bid> bids, String description, int startingPrice,
             int immediatePurchasePrice, LocalDateTime expiredAt, int winningPrice, Status status,
@@ -112,6 +118,6 @@ public class Auction {
     }
 
     public void updateImageUrls(List<String> imageUrls) {
-        this.imageUrls =imageUrls;
+        this.imageUrls = imageUrls;
     }
 }

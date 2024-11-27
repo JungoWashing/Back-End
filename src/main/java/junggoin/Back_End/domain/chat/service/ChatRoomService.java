@@ -5,11 +5,16 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import junggoin.Back_End.domain.auction.Auction;
+import junggoin.Back_End.domain.auction.Status;
+import junggoin.Back_End.domain.auction.service.AuctionService;
+import junggoin.Back_End.domain.bid.service.BidService;
 import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.chat.MemberChatRoom;
+import junggoin.Back_End.domain.chat.dto.CreateChatRoomByBuyerRequest;
+import junggoin.Back_End.domain.chat.dto.CreateChatRoomBySellerRequest;
 import junggoin.Back_End.domain.chat.redis.RedisSubscriber;
 import junggoin.Back_End.domain.chat.repository.ChatRoomRepository;
 import junggoin.Back_End.domain.chat.repository.MemberChatRoomRepository;
@@ -32,6 +37,8 @@ public class ChatRoomService {
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final MemberService memberService;
     private final MemberChatRoomRepository memberChatRoomRepository;
+    private final AuctionService auctionService;
+    private final BidService bidService;
 
     // 채팅방에 대한 토픽을 저장할 맵
     private final Map<String, ChannelTopic> topics = new HashMap<>();
@@ -41,30 +48,32 @@ public class ChatRoomService {
     }
 
     public ChatRoom findRoomById(String roomId) {
-        return chatRoomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("room not found with id: " + roomId));
+        return chatRoomRepository.findById(roomId).orElseThrow(
+                () -> new IllegalArgumentException("room not found with id: " + roomId));
     }
 
     public List<ChatRoom> getChatRoomsByMember(String email) {
         Member member = memberService.findMemberByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found with email: " + email));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Member not found with email: " + email));
 
         return member.getMemberChatRooms().stream()
                 .map(MemberChatRoom::getChatRoom)
                 .collect(Collectors.toList());
     }
 
-    public ChatRoom createChatRoom(String firstMemberEmail, String secondMemberEmail) {
-        Member member1 = memberService.findMemberByEmail(firstMemberEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + firstMemberEmail));
-        Member member2 = memberService.findMemberByEmail(secondMemberEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + secondMemberEmail));
+    @Transactional
+    public ChatRoom createChatRoomBySeller(CreateChatRoomBySellerRequest request) {
+        Member member1 = memberService.findMemberByEmail(request.getFirstMemberEmail())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Member not found with id: " + request.getFirstMemberEmail()));
+        Member member2 = memberService.findMemberByEmail(request.getSecondMemberEmail())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Member not found with id: " + request.getSecondMemberEmail()));
 
+        Auction auction = auctionService.findById(request.getAuctionId());
 
-        ChatRoom chatRoom = ChatRoom.builder()
-                .name(member1.getNickname() + ", " + member2.getNickname())
-                .lastMessageDate(LocalDateTime.now())
-                .lastMessage("")
-                .build();
+        ChatRoom chatRoom = buildChatRoom(member1, member2);
 
         chatRoomRepository.save(chatRoom);
 
@@ -78,15 +87,53 @@ public class ChatRoomService {
                 .build();
         memberChatRoomRepository.save(memberChatRoom1);
         memberChatRoomRepository.save(memberChatRoom2);
+        auction.updateStatus(Status.SOLD_OUT);
+        auction.setChatRoom(chatRoom);
 
         return chatRoom;
     }
 
-    // Check if the room exists
-    public boolean doesRoomExist(String roomId) {
-        Optional<ChatRoom> room = chatRoomRepository.findChatRoomByName(roomId);
-        if (room.isPresent()) return true;
-        else return false;
+    private ChatRoom buildChatRoom(Member member1, Member member2) {
+        ChatRoom chatRoom = ChatRoom.builder()
+                .name(member1.getNickname() + ", " + member2.getNickname())
+                .lastMessageDate(LocalDateTime.now())
+                .lastMessage("")
+                .build();
+        return chatRoom;
+    }
+
+    @Transactional
+    public ChatRoom createChatRoomByBuyer(CreateChatRoomByBuyerRequest request) {
+        Member member1 = memberService.findMemberByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Member not found with id: " + request.getEmail()));
+
+        Auction auction = auctionService.findById(request.getAuctionId());
+
+        String winnerEmail = bidService.getWinnerEmail(auction.getId());
+
+        Member member2 = memberService.findMemberByEmail(winnerEmail)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Member not found with id: " + winnerEmail));
+
+        ChatRoom chatRoom = buildChatRoom(member1, member2);
+
+        chatRoomRepository.save(chatRoom);
+
+        MemberChatRoom memberChatRoom1 = MemberChatRoom.builder()
+                .chatRoom(chatRoom)
+                .member(member1)
+                .build();
+        MemberChatRoom memberChatRoom2 = MemberChatRoom.builder()
+                .chatRoom(chatRoom)
+                .member(member2)
+                .build();
+        memberChatRoomRepository.save(memberChatRoom1);
+        memberChatRoomRepository.save(memberChatRoom2);
+        auction.updateStatus(Status.SOLD_OUT);
+        auction.setChatRoom(chatRoom);
+
+        return chatRoom;
     }
 
     // 채팅방에 들어갈 때 호출
@@ -103,7 +150,8 @@ public class ChatRoomService {
 
     @Transactional
     public void updateEntity(String id, String lastMessage) {
-        ChatRoom chatRoom = chatRoomRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Entity not found"));
+        ChatRoom chatRoom = chatRoomRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Entity not found"));
         if (chatRoom.getLastMessage().equals(lastMessage)) {
             chatRoom.update(UUID.randomUUID().toString());
             chatRoomRepository.flush();
