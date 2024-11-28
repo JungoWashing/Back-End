@@ -1,5 +1,6 @@
 package junggoin.Back_End.domain.image.controller;
-import junggoin.Back_End.domain.image.dto.ImageUploadResponseDTO;
+
+import junggoin.Back_End.domain.image.dto.ImageResponseDto;
 import junggoin.Back_End.domain.image.service.ImageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +16,21 @@ public class ImageController {
     @Autowired
     private ImageService imageService;
 
-    @PostMapping("/upload")
-    public ResponseEntity<ImageUploadResponseDTO> uploadImage(@RequestParam("files") List<MultipartFile> files, @RequestParam("auctionId") Long auctionId) {
-        return ResponseEntity.ok(imageService.upload(files, auctionId));
+
+    // 경매 상품 이미지 업로드
+    @PostMapping("/{auctionId}")
+    public ResponseEntity<ImageResponseDto> uploadImage(@RequestParam("files") List<MultipartFile> files, @PathVariable("auctionId") Long auctionId) {
+        // 이미지 s3 업로드
+        ImageResponseDto imageResponseDto = imageService.upload(files, auctionId);
+
+        // 이미지 분석 요청해서 태그 받기
+        //AnalyzeProductResponseDto analyzeProductResponseDto = imageService.analyzeImage(auctionId);
+        
+        return ResponseEntity.ok(imageResponseDto);
     }
 
-//    @GetMapping("/all/{auctionId}")
-//    public ResponseEntity<List<Map<String, String>>> getAllImagesByAuction(@PathVariable("auctionId") Long auctionId) {
-//        return imageService.getAllImagesByAuction(auctionId);
-//    }
+    @GetMapping("/{auctionId}")
+    public ResponseEntity<ImageResponseDto> getAllImagesByAuction(@PathVariable("auctionId") Long auctionId) {
+        return ResponseEntity.ok(imageService.getImagesByAuction(auctionId));
+    }
 }

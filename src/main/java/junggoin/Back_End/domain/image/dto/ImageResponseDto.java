@@ -6,12 +6,12 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class ImageUploadResponseDTO {
+public class ImageResponseDto {
     Long auctionId;
     List<String> imageUrls;
 
     @Builder
-    public ImageUploadResponseDTO(Long auctionId, List<String> imageUrls) {
+    public ImageResponseDto(Long auctionId, List<String> imageUrls) {
         this.auctionId = auctionId;
         this.imageUrls = imageUrls;
     }
