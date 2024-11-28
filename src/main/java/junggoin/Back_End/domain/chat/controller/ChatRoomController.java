@@ -1,12 +1,15 @@
 package junggoin.Back_End.domain.chat.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.chat.ChatMessage;
 import junggoin.Back_End.domain.chat.ChatRoom;
+import junggoin.Back_End.domain.chat.dto.ChatEnterResponse;
 import junggoin.Back_End.domain.chat.dto.CreateChatRoomByBuyerRequest;
 import junggoin.Back_End.domain.chat.dto.CreateChatRoomBySellerRequest;
+import junggoin.Back_End.domain.chat.dto.CreateChatRoomResponse;
 import junggoin.Back_End.domain.chat.service.ChatRoomService;
 import junggoin.Back_End.domain.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -29,19 +32,23 @@ public class ChatRoomController {
 
     // Create a new room
     @PostMapping("/room/create/seller")
-    public ResponseEntity<ChatRoom> createChatRoomBySeller(
+    public ResponseEntity<CreateChatRoomResponse> createChatRoomBySeller(
             @RequestBody CreateChatRoomBySellerRequest request) {
         ChatRoom chatRoom = chatRoomService.createChatRoomBySeller(request);
-        return ResponseEntity.ok(chatRoom);
+        return ResponseEntity.ok(CreateChatRoomResponse.builder()
+                .roomId(chatRoom.getRoomId())
+                .name(chatRoom.getName()).build());
     }
 
 
     // buyer requestDTO -> email 한개밖에 없음
     @PostMapping("/room/create/buyer")
-    public ResponseEntity<ChatRoom> createChatRoomByBuyer(
+    public ResponseEntity<CreateChatRoomResponse> createChatRoomByBuyer(
             @RequestBody CreateChatRoomByBuyerRequest request) {
         ChatRoom chatRoom = chatRoomService.createChatRoomByBuyer(request);
-        return ResponseEntity.ok(chatRoom);
+        return ResponseEntity.ok(CreateChatRoomResponse.builder()
+                .roomId(chatRoom.getRoomId())
+                .name(chatRoom.getName()).build());
     }
 
 
@@ -80,24 +87,42 @@ public class ChatRoomController {
 
     // 특정 채팅방 입장, 이전 채팅들 반환
     @GetMapping("/room/enter")
-    public ResponseEntity<List<ChatMessage>> enterChatRoomByRoomIdAndGetChatMessagesOrderByCreatedTime(
+    public ResponseEntity<List<ChatEnterResponse>> enterChatRoomByRoomIdAndGetChatMessagesOrderByCreatedTime(
             @RequestParam(name = "roomId") String roomId) {
         ChatRoom chatRoom = chatRoomService.findRoomById(roomId);
         chatRoomService.enterChatRoom(chatRoom.getRoomId());
         List<ChatMessage> messages = chatService.getMessagesByRoomIdOrderByTime(
                 chatRoom.getRoomId());
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(messages.stream()
+                .map(message -> ChatEnterResponse.builder()
+                        .senderEmail(message.getSender()
+                                .getEmail())
+                        .senderNickname(message.getSender()
+                                .getNickname())
+                        .message(message.getMessage())
+                        .build())
+                .collect(Collectors.toList())
+        );
     }
 
     // 경매정보로 채팅방 입장, 이전 채팅들 반환
     @GetMapping("/room/auction/enter")
-    public ResponseEntity<List<ChatMessage>> enterChatRoomByAuctionAndGetChatMessagesOrderByCreatedTime(
+    public ResponseEntity<List<ChatEnterResponse>> enterChatRoomByAuctionAndGetChatMessagesOrderByCreatedTime(
             @RequestParam(name = "auctionId") Long auctionId) {
         Auction auction = auctionService.findById(auctionId);
         ChatRoom chatRoom = auction.getChatRoom();
         chatRoomService.enterChatRoom(chatRoom.getRoomId());
         List<ChatMessage> messages = chatService.getMessagesByRoomIdOrderByTime(
                 chatRoom.getRoomId());
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(messages.stream()
+                .map(message -> ChatEnterResponse.builder()
+                        .senderEmail(message.getSender()
+                                .getEmail())
+                        .senderNickname(message.getSender()
+                                .getNickname())
+                        .message(message.getMessage())
+                        .build())
+                .collect(Collectors.toList())
+        );
     }
 }
