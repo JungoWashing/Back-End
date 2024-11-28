@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 import junggoin.Back_End.domain.chat.MemberChatRoom;
+import junggoin.Back_End.domain.hashtag.MemberHashtag;
 import junggoin.Back_End.domain.image.Image;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -62,6 +63,10 @@ public class Member {
     @Builder.Default
     private List<MemberChatRoom> memberChatRooms = new ArrayList<>();
 
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<MemberHashtag> memberHashtags = new ArrayList<>();
+
     @Builder
     public Member(String name, String nickname, String socialId, String email,
             String profileImageUrl, RoleType role, List<MemberChatRoom> memberChatRooms) {
@@ -88,5 +93,12 @@ public class Member {
 
     public void updateProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+    public void addMemberHashtag(MemberHashtag memberHashtag) {
+        this.memberHashtags.add(memberHashtag);
+    }
+
+    public void removeMemberHashtag(MemberHashtag memberHashtag) {
+        this.memberHashtags.remove(memberHashtag);
     }
 }

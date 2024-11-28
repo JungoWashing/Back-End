@@ -1,5 +1,10 @@
 package junggoin.Back_End.domain.member.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import junggoin.Back_End.domain.hashtag.Hashtag;
+import junggoin.Back_End.domain.hashtag.MemberHashtag;
+import junggoin.Back_End.domain.hashtag.repository.MemberHashtagRepository;
 import junggoin.Back_End.domain.jwt.service.TokenService;
 import junggoin.Back_End.domain.member.dto.MemberCheckNicknameResponse;
 import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
@@ -26,6 +31,7 @@ import java.util.Optional;
 public class MemberService {
     private final MemberRepository memberRepository;
     private final TokenService tokenService;
+    private final MemberHashtagRepository memberHashtagRepository;
 
     public Optional<Member> findMemberByEmail(String email) {
         return memberRepository.findMemberByEmail(email);
@@ -109,6 +115,20 @@ public class MemberService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
+    // 회원의 해시태그 조회
+    public List<Hashtag> getMemberHashtags(Member member) {
+        List<MemberHashtag> memberHashtags = member.getMemberHashtags();
+        return memberHashtags.stream()
+                .map(MemberHashtag::getHashtag)
+                .collect(Collectors.toList());
+    }
+
+    // 회원의 해시태그 삭제
+    public void removeMemberHashtag(Member member, Hashtag hashtag) {
+        MemberHashtag memberHashtag = memberHashtagRepository.findByMemberAndHashtag(member, hashtag);
+        member.removeMemberHashtag(memberHashtag);
+        memberRepository.save(member);
+    }
     private static MemberInfoResponse toMemberInfo(Member member) {
         if (member == null) {
             throw new IllegalArgumentException("회원은 null 일 수 없습니다");
