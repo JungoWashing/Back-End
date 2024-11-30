@@ -27,6 +27,6 @@ public class MemberHashtag {
     private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hashtag_id", nullable = false)
+    @JoinColumn(name = "hashtag_id", nullable = false,unique = true)
     private Hashtag hashtag;
 }

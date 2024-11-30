@@ -85,4 +85,23 @@ public class MemberController {
     public ResponseEntity<MemberCheckNicknameResponse> checkNickname(@NotBlank @RequestParam String nickname) {
         return ResponseEntity.ok().body(memberService.checkNickname(nickname));
     }
+
+    // 회원 해시태그 조회
+    @GetMapping("/{email}/hashtags")
+    public ResponseEntity<MemberHashtagResponseDto> getHashtags(@PathVariable String email) {
+        return ResponseEntity.ok(memberService.getMemberHashtags(email));
+    }
+
+    // 회원 해시태그 삭제
+    @DeleteMapping("/{email}/hashtags")
+    public ResponseEntity<Object> removeHashtag(@PathVariable String email, @RequestParam String hashtag) {
+        memberService.removeMemberHashtag(email,hashtag);
+        return ResponseEntity.ok().build();
+    }
+
+    // 회원 해시태그 저장
+    @PostMapping("/{email}/hashtags")
+    public ResponseEntity<MemberHashtagResponseDto> saveHashtags(@PathVariable String email, @RequestBody MemberHashtagRequestDto request ) {
+        return ResponseEntity.ok(memberService.saveMemberHashtag(email, request));
+    }
 }
