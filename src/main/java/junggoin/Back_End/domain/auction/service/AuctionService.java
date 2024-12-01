@@ -112,7 +112,6 @@ public class AuctionService {
     }
 
     // Method to end an auction
-    @Transactional
     public void endAuction(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
@@ -125,7 +124,13 @@ public class AuctionService {
             log.info(e.getMessage());
             throw new RuntimeException(e);
         }
+        auctionRepository.save(auction);
         log.info("Auction ended for product ID: " + auctionId);
+    }
+
+    public void updateWinningPrice(Auction auction, int price) {
+        auction.updateWinningPrice(price);
+        auctionRepository.save(auction);
     }
 
     // Redis expiration listener

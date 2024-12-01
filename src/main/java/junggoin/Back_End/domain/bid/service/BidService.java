@@ -17,7 +17,6 @@ import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.integration.redis.util.RedisLockRegistry;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
@@ -35,7 +34,6 @@ public class BidService {
     private final RedisLockRegistry redisLockRegistry;
 
     // 경매 입찰
-    @Transactional
     public BidResponseDto startBid(int price, Member bidder, Long auctionId) {
         // 경매 상태 확인
         Auction auction = auctionService.findById(auctionId);
@@ -66,16 +64,12 @@ public class BidService {
                 .build();
 
         bidRepository.save(bid);
-
-        // 최고 입찰가 업데이트
-        auction.updateWinningPrice(price);
+        auctionService.updateWinningPrice(auction,price);
 
         return this.toBidResponseDto(bid);
     }
 
     // 경매 입찰 락
-    @Synchronized
-    @Transactional
     public BidResponseDto bidAuction(Long id, BidRequestDto bidRequestDto) throws InterruptedException, TimeoutException {
         log.info("{}", bidRequestDto.getBidderEmail());
         Member bidder = memberService.findMemberByEmail(bidRequestDto.getBidderEmail()).orElseThrow(()-> new NoSuchElementException("존재하지 않는 회원: "+bidRequestDto.getBidderEmail()));
@@ -85,7 +79,6 @@ public class BidService {
     }
 
     // 낙찰자 찾기 (채팅방 생성에 필요)
-    @Transactional
     public String getWinnerEmail(Long auctionId){
             Bid bid = bidRepository.findTopByAuctionIdOrderByBidPriceDesc(auctionId).orElseThrow(()->new NoSuchElementException("존재하지 않는 입찰"));
         return bid.getBidder().getEmail();
@@ -98,7 +91,6 @@ public class BidService {
     }
 
     // 해당 경매 입찰 리스트
-    @Transactional
     public List<Bid> getBids(Long auctionId) {
         return bidRepository.findAllByAuctionId(auctionId);
     }
