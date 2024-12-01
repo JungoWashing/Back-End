@@ -1,15 +1,20 @@
 package junggoin.Back_End.domain.auction.controller;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeoutException;
 
 import junggoin.Back_End.domain.auction.Auction;
+import junggoin.Back_End.domain.auction.dto.HighestBidResponse;
 import junggoin.Back_End.domain.auction.dto.ProductRepDto;
 import junggoin.Back_End.domain.auction.dto.ProductReqDto;
 import junggoin.Back_End.domain.auction.service.AuctionService;
+import junggoin.Back_End.domain.bid.Bid;
 import junggoin.Back_End.domain.bid.dto.BidRequestDto;
 import junggoin.Back_End.domain.bid.dto.BidResponseDto;
 import junggoin.Back_End.domain.bid.service.BidService;
+import junggoin.Back_End.domain.member.Member;
+import junggoin.Back_End.domain.member.service.MemberService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +26,7 @@ public class AuctionController {
 
     private final AuctionService auctionService;
     private final BidService bidService;
+    private final MemberService memberService;
 
     // 경매 게시
     @PostMapping("/{email}")
@@ -41,7 +47,8 @@ public class AuctionController {
     // 경매 전체 조회
     @GetMapping("")
     public ResponseEntity<List<ProductRepDto>> getAllAuctions() {
-        List<ProductRepDto> productRepDtos = auctionService.findAll().stream().map(auctionService::toProductRepDto).toList();
+        List<ProductRepDto> productRepDtos = auctionService.findAll().stream()
+                .map(auctionService::toProductRepDto).toList();
         return ResponseEntity.ok(productRepDtos);
     }
 
@@ -50,25 +57,46 @@ public class AuctionController {
     public ResponseEntity<String> deleteAuction(@PathVariable("id") Long id) {
         Long auctionId = auctionService.deleteAuction(id);
 
-        return ResponseEntity.ok("경매 삭제 성공: "+auctionId);
+        return ResponseEntity.ok("경매 삭제 성공: " + auctionId);
     }
 
     // 경매 입찰
     @PostMapping("/{id}/bids")
     public ResponseEntity<BidResponseDto> bidAuction(@PathVariable("id") Long id, @RequestBody
     BidRequestDto bidRequestDto) throws InterruptedException, TimeoutException {
-        return ResponseEntity.ok(bidService.bidAuction(id,bidRequestDto)) ;
+        return ResponseEntity.ok(bidService.bidAuction(id, bidRequestDto));
     }
 
     // 판매 내역 조회
     @GetMapping("/{email}/sell-history")
-    public ResponseEntity<List<ProductRepDto>> getAuctionBySeller(@PathVariable("email") String email) {
-        return ResponseEntity.ok(auctionService.findByEmail(email).stream().map(auctionService::toProductRepDto).toList());
+    public ResponseEntity<List<ProductRepDto>> getAuctionBySeller(
+            @PathVariable("email") String email) {
+        return ResponseEntity.ok(
+                auctionService.findByEmail(email).stream().map(auctionService::toProductRepDto)
+                        .toList());
     }
 
     // 구매 내역 조회
     @GetMapping("/{email}/bid-history")
-    public ResponseEntity<List<ProductRepDto>> getAuctionByBidder(@PathVariable("email") String email) {
-        return ResponseEntity.ok(bidService.findAuctionByEmail(email).stream().map(auctionService::toProductRepDto).toList());
+    public ResponseEntity<List<ProductRepDto>> getAuctionByBidder(
+            @PathVariable("email") String email) {
+        return ResponseEntity.ok(
+                bidService.findAuctionByEmail(email).stream().map(auctionService::toProductRepDto)
+                        .toList());
+    }
+
+    @GetMapping("/{id}/highest-bid")
+    public ResponseEntity<HighestBidResponse> getHighestBidder(@PathVariable("id") Long id) {
+        Bid winnerBid = bidService.getWinnerBid(id);
+        Member member = memberService.findMemberByEmail(winnerBid.getBidder().getEmail())
+                .orElseThrow(() -> new NoSuchElementException(
+                        "존재하지 않는 회원 : " + winnerBid.getBidder().getEmail()));
+        return ResponseEntity.ok(
+                HighestBidResponse.builder()
+                        .email(member.getEmail())
+                        .nickname(member.getNickname())
+                        .price(winnerBid.getBidPrice())
+                        .build()
+        );
     }
 }

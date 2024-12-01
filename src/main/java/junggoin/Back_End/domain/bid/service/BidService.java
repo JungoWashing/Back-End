@@ -79,9 +79,9 @@ public class BidService {
     }
 
     // 낙찰자 찾기 (채팅방 생성에 필요)
-    public String getWinnerEmail(Long auctionId){
+    public Bid getWinnerBid(Long auctionId){
             Bid bid = bidRepository.findTopByAuctionIdOrderByBidPriceDesc(auctionId).orElseThrow(()->new NoSuchElementException("존재하지 않는 입찰"));
-        return bid.getBidder().getEmail();
+        return bid;
     }
 
     // 입찰한 경매 찾기 (구매/입찰 내역 조회에 필요)

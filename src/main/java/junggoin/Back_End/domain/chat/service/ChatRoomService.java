@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.Status;
 import junggoin.Back_End.domain.auction.service.AuctionService;
+import junggoin.Back_End.domain.bid.Bid;
 import junggoin.Back_End.domain.bid.service.BidService;
 import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.chat.MemberChatRoom;
@@ -108,11 +109,11 @@ public class ChatRoomService {
 
         Auction auction = auctionService.findById(request.getAuctionId());
 
-        String winnerEmail = bidService.getWinnerEmail(auction.getId());
+        Bid bid = bidService.getWinnerBid(auction.getId());
 
-        Member buyer = memberService.findMemberByEmail(winnerEmail)
+        Member buyer = memberService.findMemberByEmail(bid.getBidder().getEmail())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Member not found with id: " + winnerEmail));
+                        "Member not found with id: " + bid.getBidder().getEmail()));
 
         ChatRoom chatRoom = buildChatRoom(seller, buyer);
 
