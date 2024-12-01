@@ -13,8 +13,7 @@ import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.bid.service.BidService;
 import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.chat.MemberChatRoom;
-import junggoin.Back_End.domain.chat.dto.CreateChatRoomByBuyerRequest;
-import junggoin.Back_End.domain.chat.dto.CreateChatRoomBySellerRequest;
+import junggoin.Back_End.domain.chat.dto.CreateChatRoomRequest;
 import junggoin.Back_End.domain.chat.redis.RedisSubscriber;
 import junggoin.Back_End.domain.chat.repository.ChatRoomRepository;
 import junggoin.Back_End.domain.chat.repository.MemberChatRoomRepository;
@@ -63,27 +62,26 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoom createChatRoomBySeller(CreateChatRoomBySellerRequest request) {
-        Member member1 = memberService.findMemberByEmail(request.getFirstMemberEmail())
+    public ChatRoom createChatRoomByBuyer(CreateChatRoomRequest request) {
+        Member buyer = memberService.findMemberByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Member not found with id: " + request.getFirstMemberEmail()));
-        Member member2 = memberService.findMemberByEmail(request.getSecondMemberEmail())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Member not found with id: " + request.getSecondMemberEmail()));
+                        "Member not found with id: " + request.getEmail()));
 
         Auction auction = auctionService.findById(request.getAuctionId());
 
-        ChatRoom chatRoom = buildChatRoom(member1, member2);
+        Member seller = auction.getMember();
+
+        ChatRoom chatRoom = buildChatRoom(buyer, seller);
 
         chatRoomRepository.save(chatRoom);
 
         MemberChatRoom memberChatRoom1 = MemberChatRoom.builder()
                 .chatRoom(chatRoom)
-                .member(member1)
+                .member(buyer)
                 .build();
         MemberChatRoom memberChatRoom2 = MemberChatRoom.builder()
                 .chatRoom(chatRoom)
-                .member(member2)
+                .member(seller)
                 .build();
         memberChatRoomRepository.save(memberChatRoom1);
         memberChatRoomRepository.save(memberChatRoom2);
@@ -103,8 +101,8 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoom createChatRoomByBuyer(CreateChatRoomByBuyerRequest request) {
-        Member member1 = memberService.findMemberByEmail(request.getEmail())
+    public ChatRoom createChatRoomBySeller(CreateChatRoomRequest request) {
+        Member seller = memberService.findMemberByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Member not found with id: " + request.getEmail()));
 
@@ -112,21 +110,21 @@ public class ChatRoomService {
 
         String winnerEmail = bidService.getWinnerEmail(auction.getId());
 
-        Member member2 = memberService.findMemberByEmail(winnerEmail)
+        Member buyer = memberService.findMemberByEmail(winnerEmail)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Member not found with id: " + winnerEmail));
 
-        ChatRoom chatRoom = buildChatRoom(member1, member2);
+        ChatRoom chatRoom = buildChatRoom(seller, buyer);
 
         chatRoomRepository.save(chatRoom);
 
         MemberChatRoom memberChatRoom1 = MemberChatRoom.builder()
                 .chatRoom(chatRoom)
-                .member(member1)
+                .member(seller)
                 .build();
         MemberChatRoom memberChatRoom2 = MemberChatRoom.builder()
                 .chatRoom(chatRoom)
-                .member(member2)
+                .member(buyer)
                 .build();
         memberChatRoomRepository.save(memberChatRoom1);
         memberChatRoomRepository.save(memberChatRoom2);

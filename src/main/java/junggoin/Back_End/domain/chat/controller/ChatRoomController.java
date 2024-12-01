@@ -7,8 +7,7 @@ import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.chat.ChatMessage;
 import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.chat.dto.ChatEnterResponse;
-import junggoin.Back_End.domain.chat.dto.CreateChatRoomByBuyerRequest;
-import junggoin.Back_End.domain.chat.dto.CreateChatRoomBySellerRequest;
+import junggoin.Back_End.domain.chat.dto.CreateChatRoomRequest;
 import junggoin.Back_End.domain.chat.dto.CreateChatRoomResponse;
 import junggoin.Back_End.domain.chat.service.ChatRoomService;
 import junggoin.Back_End.domain.chat.service.ChatService;
@@ -33,7 +32,7 @@ public class ChatRoomController {
     // Create a new room
     @PostMapping("/room/create/seller")
     public ResponseEntity<CreateChatRoomResponse> createChatRoomBySeller(
-            @RequestBody CreateChatRoomBySellerRequest request) {
+            @RequestBody CreateChatRoomRequest request) {
         ChatRoom chatRoom = chatRoomService.createChatRoomBySeller(request);
         return ResponseEntity.ok(CreateChatRoomResponse.builder()
                 .roomId(chatRoom.getRoomId())
@@ -44,7 +43,7 @@ public class ChatRoomController {
     // buyer requestDTO -> email 한개밖에 없음
     @PostMapping("/room/create/buyer")
     public ResponseEntity<CreateChatRoomResponse> createChatRoomByBuyer(
-            @RequestBody CreateChatRoomByBuyerRequest request) {
+            @RequestBody CreateChatRoomRequest request) {
         ChatRoom chatRoom = chatRoomService.createChatRoomByBuyer(request);
         return ResponseEntity.ok(CreateChatRoomResponse.builder()
                 .roomId(chatRoom.getRoomId())
