@@ -121,4 +121,27 @@ public class AiService {
 
         return productRepDtos;
     }
+
+    // 상품 이미지 분석 요청
+    public void analyzeProduct(Long auctionId){
+        // 요청 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // 요청 본문 설정
+        String requestUrl = String.format("/analyze-product?auction_id=%d", auctionId);
+
+        // HTTP 요청 엔티티 생성
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+
+        // FastAPI 서버로 POST 요청
+        ResponseEntity<String> response = restTemplate.postForEntity(requestUrl, requestEntity, String.class);
+
+        // 요청 성공 시 결과 처리
+        if (response.getStatusCode().is2xxSuccessful()) {
+            log.info("분석 결과: {}", response.getBody());
+        } else {
+            log.info("분석 요청 실패: {}", response.getStatusCode());
+        }
+    }
 }

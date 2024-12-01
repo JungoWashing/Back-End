@@ -15,6 +15,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import junggoin.Back_End.domain.ai.service.AiService;
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.image.dto.ImageResponseDto;
@@ -32,6 +33,7 @@ public class ImageService {
 
     private final AmazonS3 amazonS3;
     private final AuctionService auctionService;
+    private final AiService aiService;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
@@ -55,6 +57,9 @@ public class ImageService {
         });
 
         auction.updateImageUrls(urls);
+
+        aiService.analyzeProduct(auctionId);
+
         return ImageResponseDto.builder()
                 .imageUrls(urls)
                 .auctionId(auctionId)
