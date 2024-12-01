@@ -50,8 +50,8 @@ public class MemberController {
     )
     @PutMapping("/join")
     public ResponseEntity<MemberInfoResponse> joinMember(@AuthenticationPrincipal User user,
-                                                         @NotBlank @RequestParam String nickname) {
-        return ResponseEntity.ok().body(memberService.joinMember(user.getUsername(), nickname));
+                                                         @RequestBody JoinRequestDto joinRequestDto) {
+        return ResponseEntity.ok().body(memberService.joinMember(user.getUsername(), joinRequestDto));
     }
 
     // 닉네임 수정
@@ -99,9 +99,9 @@ public class MemberController {
         return ResponseEntity.ok().build();
     }
 
-    // 회원 해시태그 저장
+    // 회원 해시태그 저장/수정
     @PostMapping("/{email}/hashtags")
     public ResponseEntity<MemberHashtagResponseDto> saveHashtags(@PathVariable String email, @RequestBody MemberHashtagRequestDto request ) {
-        return ResponseEntity.ok(memberService.saveMemberHashtag(email, request));
+        return ResponseEntity.ok(memberService.saveMemberHashtag(email, request.getHashtags()));
     }
 }

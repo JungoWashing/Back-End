@@ -1,8 +1,10 @@
 package junggoin.Back_End.domain.member.service;
 
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import ch.qos.logback.core.net.SyslogOutputStream;
+import jakarta.persistence.EntityManager;
 import junggoin.Back_End.domain.hashtag.Hashtag;
 import junggoin.Back_End.domain.hashtag.MemberHashtag;
 import junggoin.Back_End.domain.hashtag.repository.MemberHashtagRepository;
@@ -22,9 +24,6 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.Optional;
-
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -33,6 +32,7 @@ public class MemberService {
     private final TokenService tokenService;
     private final MemberHashtagRepository memberHashtagRepository;
     private final HashtagService hashtagService;
+    private EntityManager entityManager;
 
     public Optional<Member> findMemberByEmail(String email) {
         return memberRepository.findMemberByEmail(email);
@@ -56,17 +56,22 @@ public class MemberService {
     // 최초 구글 로그인 시 받은 정보를 토대로 입력할 수 있는 것들만 입력한 후 ROLE_GUEST 권한을 주고 Member Entity 를 생성함(회원 생성)
     // 이후 FrontEnd 에 유저 정보를 넘겨준 뒤, /api/members/join 에 request param 으로 nickname 을 put 요청으로 보내면 회원 가입 완료
     @Transactional
-    public MemberInfoResponse joinMember(String email, String nickname) {
+    public MemberInfoResponse joinMember(String email, JoinRequestDto joinRequestDto) {
         Member member = memberRepository.findMemberByEmail(email)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: " + email));
 
         // 닉네임 중복 확인
-        if (memberRepository.existsMemberByNickname(nickname)) {
+        if (memberRepository.existsMemberByNickname(joinRequestDto.getNickname())) {
             throw new RuntimeException("이미 사용 중인 닉네임입니다");
         }
 
         // 회원가입 처리
-        member.updateNickname(nickname);
+        member.updateNickname(joinRequestDto.getNickname());
+
+        // 해시태그 저장
+        this.saveMemberHashtag(email,joinRequestDto.getHashtags());
+
+
         member.updateRole(RoleType.ROLE_USER);
 
         String token = tokenService.findAccessToken(email);
@@ -151,23 +156,43 @@ public class MemberService {
         return memberHashtagRepository.save(memberHashtag);
     }
 
-    public MemberHashtagResponseDto saveMemberHashtag(String email, MemberHashtagRequestDto request) {
-        Member member = memberRepository.findMemberByEmail(email).orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: "+email));
 
-        List<String> hashtags = request.getHashtags().stream().map(name-> {
-            Hashtag hashtag = hashtagService.getHashtag(name);
-            MemberHashtag memberHashtag = memberHashtagRepository.findByMemberAndHashtag(member, hashtag);
-            // 이미 존재하면 저장 안해도 됨
-            if(memberHashtag==null){
-                return this.saveMemberHashtagByMember(member, hashtag);
-            }else{
-                return memberHashtag;
-            }
+    @Transactional
+    public MemberHashtagResponseDto saveMemberHashtag(String email, List<String> hashtagNames) {
+        Member member = memberRepository.findMemberByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: " + email));
 
-        }).map(MemberHashtag::getHashtag)
-                .map(Hashtag::getName).toList();
+        // 기존 MemberHashtag 리스트 조회
+        List<MemberHashtag> existingHashtags = memberHashtagRepository.findAllByMemberId(member.getId());
+        Set<String> existingHashtagNames = existingHashtags.stream()
+                .map(memberHashtag -> memberHashtag.getHashtag().getName())
+                .collect(Collectors.toSet());
 
-        return new MemberHashtagResponseDto(hashtags);
+        // 새롭게 추가할 태그와 기존에 유지할 태그를 구분
+        Set<String> newHashtagNames = new HashSet<>(hashtagNames);
+        Set<String> hashtagsToRemove = new HashSet<>(existingHashtagNames);
+        hashtagsToRemove.removeAll(newHashtagNames);
+        newHashtagNames.removeAll(existingHashtagNames);
+
+        // 제거할 태그 삭제
+        if (!hashtagsToRemove.isEmpty()) {
+            List<Long> hashtagIdsToRemove = existingHashtags.stream()
+                    .filter(memberHashtag -> hashtagsToRemove.contains(memberHashtag.getHashtag().getName()))
+                    .map(MemberHashtag::getId)
+                    .toList();
+            memberHashtagRepository.deleteAllById(hashtagIdsToRemove);
+        }
+
+        // 새로운 태그 추가
+        List<String> resultingHashtags = new ArrayList<>(newHashtagNames.stream()
+                .map(hashtagService::getHashtag)
+                .map(hashtag -> saveMemberHashtagByMember(member, hashtag))
+                .map(MemberHashtag::getHashtag)
+                .map(Hashtag::getName)
+                .toList());
+
+        resultingHashtags.addAll(existingHashtagNames);
+        return new MemberHashtagResponseDto(resultingHashtags);
     }
 
     private static MemberInfoResponse toMemberInfo(Member member) {
