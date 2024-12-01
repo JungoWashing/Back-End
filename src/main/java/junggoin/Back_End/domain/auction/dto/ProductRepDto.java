@@ -17,10 +17,11 @@ public class ProductRepDto {
     private String status;
     private int immediatePurchasePrice;
     private int highestBidPrice;
+    private String roomId;
 
     @Builder
     public ProductRepDto(Long auctionId, String sellerEmail,String productName, String description, int startingPrice,
-            LocalDateTime endTime, String status, int immediatePurchasePrice, int highestBidPrice) {
+            LocalDateTime endTime, String status, int immediatePurchasePrice, int highestBidPrice, String roomId) {
         this.auctionId = auctionId;
         this.sellerEmail = sellerEmail;
         this.productName = productName;
@@ -30,5 +31,6 @@ public class ProductRepDto {
         this.status = status;
         this.immediatePurchasePrice = immediatePurchasePrice;
         this.highestBidPrice = highestBidPrice;
+        this.roomId = roomId;
     }
 }

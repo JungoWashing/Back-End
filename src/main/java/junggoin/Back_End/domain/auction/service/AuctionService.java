@@ -188,6 +188,7 @@ public class AuctionService {
                 .description(auction.getDescription())
                 .endTime(auction.getExpiredAt())
                 .status(auction.getStatus().name())
+                .roomId(auction.getChatRoom() != null ? auction.getChatRoom().getRoomId() : "")
                 .build();
     }
 }
