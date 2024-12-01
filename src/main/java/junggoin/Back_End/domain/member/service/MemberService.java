@@ -1,13 +1,14 @@
 package junggoin.Back_End.domain.member.service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import junggoin.Back_End.domain.hashtag.Hashtag;
 import junggoin.Back_End.domain.hashtag.MemberHashtag;
 import junggoin.Back_End.domain.hashtag.repository.MemberHashtagRepository;
+import junggoin.Back_End.domain.hashtag.service.HashtagService;
 import junggoin.Back_End.domain.jwt.service.TokenService;
-import junggoin.Back_End.domain.member.dto.MemberCheckNicknameResponse;
-import junggoin.Back_End.domain.member.dto.MemberInfoResponse;
+import junggoin.Back_End.domain.member.dto.*;
 import junggoin.Back_End.security.GoogleOAuth2UserInfo;
 import junggoin.Back_End.domain.member.Member;
 import junggoin.Back_End.domain.member.RoleType;
@@ -27,11 +28,11 @@ import java.util.Optional;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-@Transactional(readOnly = true)
 public class MemberService {
     private final MemberRepository memberRepository;
     private final TokenService tokenService;
     private final MemberHashtagRepository memberHashtagRepository;
+    private final HashtagService hashtagService;
 
     public Optional<Member> findMemberByEmail(String email) {
         return memberRepository.findMemberByEmail(email);
@@ -57,7 +58,7 @@ public class MemberService {
     @Transactional
     public MemberInfoResponse joinMember(String email, String nickname) {
         Member member = memberRepository.findMemberByEmail(email)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원: " + email));
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: " + email));
 
         // 닉네임 중복 확인
         if (memberRepository.existsMemberByNickname(nickname)) {
@@ -79,7 +80,7 @@ public class MemberService {
     @Transactional
     public MemberInfoResponse updateMemberNickname(String email, String nickname) {
         Member member = memberRepository.findMemberByEmail(email)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원: " + email));
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: " + email));
 
         // 닉네임 중복 확인
         if (memberRepository.existsMemberByNickname(nickname)) {
@@ -98,7 +99,7 @@ public class MemberService {
     
     // 이메일로 회원정보 조회
     public MemberInfoResponse getMemberInfo(String email) {
-        Member member =  memberRepository.findMemberByEmail(email).orElseThrow(() ->  new RuntimeException("존재하지 않는 회원: " + email));
+        Member member =  memberRepository.findMemberByEmail(email).orElseThrow(() ->  new NoSuchElementException("존재하지 않는 회원: " + email));
         return toMemberInfo(member);
     }
 
@@ -116,19 +117,59 @@ public class MemberService {
     }
 
     // 회원의 해시태그 조회
-    public List<Hashtag> getMemberHashtags(Member member) {
+    public List<Hashtag> getMemberHashtagsByMember(Member member) {
         List<MemberHashtag> memberHashtags = member.getMemberHashtags();
         return memberHashtags.stream()
                 .map(MemberHashtag::getHashtag)
                 .collect(Collectors.toList());
     }
 
-    // 회원의 해시태그 삭제
-    public void removeMemberHashtag(Member member, Hashtag hashtag) {
-        MemberHashtag memberHashtag = memberHashtagRepository.findByMemberAndHashtag(member, hashtag);
-        member.removeMemberHashtag(memberHashtag);
-        memberRepository.save(member);
+    public MemberHashtagResponseDto getMemberHashtags(String email){
+        Member member = memberRepository.findMemberByEmail(email).orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: "));
+        List<String> hashtagNames = this.getMemberHashtagsByMember(member).stream().map(Hashtag::getName).toList();
+        return new MemberHashtagResponseDto(hashtagNames);
     }
+
+    // 회원의 해시태그 삭제
+    public void removeMemberHashtagByMember(Member member, Hashtag hashtag) {
+        MemberHashtag memberHashtag = memberHashtagRepository.findByMemberAndHashtag(member, hashtag);
+        memberHashtagRepository.delete(memberHashtag);
+    }
+
+    public void removeMemberHashtag(String email, String hashtagName) {
+        Member member = memberRepository.findMemberByEmail(email).orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: "+email));
+        Hashtag hashtag = hashtagService.getHashtag(hashtagName);
+        this.removeMemberHashtagByMember(member, hashtag);
+    }
+
+    // 회원의 해시태그 저장
+    public MemberHashtag saveMemberHashtagByMember(Member member, Hashtag hashtag) {
+        MemberHashtag memberHashtag = MemberHashtag.builder()
+                .hashtag(hashtag)
+                .member(member)
+                .build();
+        return memberHashtagRepository.save(memberHashtag);
+    }
+
+    public MemberHashtagResponseDto saveMemberHashtag(String email, MemberHashtagRequestDto request) {
+        Member member = memberRepository.findMemberByEmail(email).orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원: "+email));
+
+        List<String> hashtags = request.getHashtags().stream().map(name-> {
+            Hashtag hashtag = hashtagService.getHashtag(name);
+            MemberHashtag memberHashtag = memberHashtagRepository.findByMemberAndHashtag(member, hashtag);
+            // 이미 존재하면 저장 안해도 됨
+            if(memberHashtag==null){
+                return this.saveMemberHashtagByMember(member, hashtag);
+            }else{
+                return memberHashtag;
+            }
+
+        }).map(MemberHashtag::getHashtag)
+                .map(Hashtag::getName).toList();
+
+        return new MemberHashtagResponseDto(hashtags);
+    }
+
     private static MemberInfoResponse toMemberInfo(Member member) {
         if (member == null) {
             throw new IllegalArgumentException("회원은 null 일 수 없습니다");

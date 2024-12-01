@@ -13,22 +13,16 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.*;
 
-import jakarta.annotation.PostConstruct;
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.service.AuctionService;
-import junggoin.Back_End.domain.image.dto.AnalyzeProductRequestDto;
-import junggoin.Back_End.domain.image.dto.AnalyzeProductResponseDto;
 import junggoin.Back_End.domain.image.dto.ImageResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -41,19 +35,6 @@ public class ImageService {
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
-
-    @Value("${ai_server_url}")
-    private String ai_server_url;
-
-    private RestTemplate restTemplate;
-
-    @PostConstruct
-    public void init() {
-        restTemplate = new RestTemplateBuilder()
-                .rootUri(ai_server_url)
-                .setConnectTimeout(Duration.ofSeconds(5))
-                .build();
-    }
 
     @Transactional
     public ImageResponseDto upload(List<MultipartFile> images, Long auctionId) {
@@ -144,9 +125,5 @@ public class ImageService {
                 .auctionId(auctionId)
                 .imageUrls(auctionService.findById(auctionId).getImageUrls())
                 .build();
-    }
-
-    public AnalyzeProductResponseDto analyzeImage(Long auctionId) {
-        return restTemplate.postForObject("/analyze-product", new AnalyzeProductRequestDto(auctionId), AnalyzeProductResponseDto.class);
     }
 }
