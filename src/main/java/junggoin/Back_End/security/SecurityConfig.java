@@ -48,7 +48,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/", "/error", "/favicon.ico", "/*.png", "/*.gif", "/*.svg", "/*.jpg", "/*.html", "/*.css", "/*.js")
                         .permitAll()
-                        .requestMatchers("/chat/message","/ws-stomp/**")
+                        .requestMatchers("/chat/message/**","/ws-stomp/**")
                         .permitAll()
 //                        .requestMatchers("/api/**").hasAnyAuthority("ROLE_ADMIN","ROLE_USER","ROLE_GUEST")
                         .requestMatchers("/api/**").permitAll()
