@@ -100,6 +100,7 @@ public class ChatRoomController {
                         .senderNickname(message.getSender()
                                 .getNickname())
                         .message(message.getMessage())
+                        .createdAt(message.getCreatedAt())
                         .build())
                 .collect(Collectors.toList())
         );
@@ -121,6 +122,7 @@ public class ChatRoomController {
                         .senderNickname(message.getSender()
                                 .getNickname())
                         .message(message.getMessage())
+                        .createdAt(message.getCreatedAt())
                         .build())
                 .collect(Collectors.toList())
         );
