@@ -1,11 +1,11 @@
 package junggoin.Back_End.domain.member;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 import junggoin.Back_End.domain.chat.MemberChatRoom;
 import junggoin.Back_End.domain.hashtag.MemberHashtag;
-import junggoin.Back_End.domain.image.Image;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,6 +24,7 @@ import static lombok.AccessLevel.PROTECTED;
 @Builder
 @NoArgsConstructor(access = PROTECTED)
 @AllArgsConstructor
+@JsonIgnoreProperties({"memberChatRooms","memberHashtags"})
 @EntityListeners(AuditingEntityListener.class)  // @CreatedDate 작동을 위해서 추가
 @Entity
 public class Member {
