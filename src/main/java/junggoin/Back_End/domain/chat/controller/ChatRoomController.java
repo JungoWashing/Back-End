@@ -7,6 +7,7 @@ import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.chat.ChatMessage;
 import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.chat.dto.ChatEnterResponse;
+import junggoin.Back_End.domain.chat.dto.ChatRoomResponseDto;
 import junggoin.Back_End.domain.chat.dto.CreateChatRoomRequest;
 import junggoin.Back_End.domain.chat.dto.CreateChatRoomResponse;
 import junggoin.Back_End.domain.chat.service.ChatRoomService;
@@ -71,16 +72,16 @@ public class ChatRoomController {
      * ]
      */
     @GetMapping("/member/rooms")
-    public ResponseEntity<List<ChatRoom>> getChatRoomsByMemberId(
+    public ResponseEntity<List<ChatRoomResponseDto>> getChatRoomsByMemberId(
             @RequestParam(name = "email") String email) {
-        List<ChatRoom> chatRooms = chatRoomService.getChatRoomsByMember(email);
+        List<ChatRoomResponseDto> chatRooms = chatRoomService.getChatRoomsByMember(email).stream().map(chatRoomService::toChatRoomResponseDto).collect(Collectors.toList());
         return ResponseEntity.ok(chatRooms);
     }
 
     // 특정 채팅방 정보 조회
     @GetMapping("/room")
-    public ResponseEntity<ChatRoom> getRoom(@RequestParam(name = "roomId") String roomId) {
-        ChatRoom chatRoom = chatRoomService.findRoomById(roomId);
+    public ResponseEntity<ChatRoomResponseDto> getRoom(@RequestParam(name = "roomId") String roomId) {
+        ChatRoomResponseDto chatRoom = chatRoomService.toChatRoomResponseDto(chatRoomService.findRoomById(roomId));
         return ResponseEntity.ok(chatRoom);
     }
 

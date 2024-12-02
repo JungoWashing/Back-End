@@ -1,12 +1,14 @@
 package junggoin.Back_End.domain.chat.service;
 
 import jakarta.persistence.EntityNotFoundException;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.Status;
 import junggoin.Back_End.domain.auction.service.AuctionService;
@@ -14,6 +16,7 @@ import junggoin.Back_End.domain.bid.Bid;
 import junggoin.Back_End.domain.bid.service.BidService;
 import junggoin.Back_End.domain.chat.ChatRoom;
 import junggoin.Back_End.domain.chat.MemberChatRoom;
+import junggoin.Back_End.domain.chat.dto.ChatRoomResponseDto;
 import junggoin.Back_End.domain.chat.dto.CreateChatRoomRequest;
 import junggoin.Back_End.domain.chat.redis.RedisSubscriber;
 import junggoin.Back_End.domain.chat.repository.ChatRoomRepository;
@@ -160,5 +163,14 @@ public class ChatRoomService {
 
     public ChannelTopic getTopic(String roomId) {
         return topics.get(roomId);
+    }
+
+    public ChatRoomResponseDto toChatRoomResponseDto(ChatRoom chatRoom) {
+        return ChatRoomResponseDto.builder()
+                .roomId(chatRoom.getRoomId())
+                .name(chatRoom.getName())
+                .lastMessage(chatRoom.getLastMessage())
+                .lastMessageDate(chatRoom.getLastMessageDate())
+                .build();
     }
 }
