@@ -75,7 +75,7 @@ public class ChatRoomService {
 
         Member seller = auction.getMember();
 
-        ChatRoom chatRoom = buildChatRoom(buyer, seller);
+        ChatRoom chatRoom = buildChatRoom(buyer, seller,auction);
 
         chatRoomRepository.save(chatRoom);
 
@@ -95,13 +95,13 @@ public class ChatRoomService {
         return chatRoom;
     }
 
-    private ChatRoom buildChatRoom(Member member1, Member member2) {
-        ChatRoom chatRoom = ChatRoom.builder()
+    private ChatRoom buildChatRoom(Member member1, Member member2,Auction auction) {
+        return ChatRoom.builder()
                 .name(member1.getNickname() + ", " + member2.getNickname())
                 .lastMessageDate(LocalDateTime.now())
                 .lastMessage("")
+                .auction(auction)
                 .build();
-        return chatRoom;
     }
 
     @Transactional
@@ -118,7 +118,7 @@ public class ChatRoomService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Member not found with id: " + bid.getBidder().getEmail()));
 
-        ChatRoom chatRoom = buildChatRoom(seller, buyer);
+        ChatRoom chatRoom = buildChatRoom(seller, buyer,auction);
 
         chatRoomRepository.save(chatRoom);
 
@@ -171,6 +171,11 @@ public class ChatRoomService {
                 .name(chatRoom.getName())
                 .lastMessage(chatRoom.getLastMessage())
                 .lastMessageDate(chatRoom.getLastMessageDate())
+                .imageUrl(chatRoom.getAuction() != null &&
+                        chatRoom.getAuction().getImageUrls() != null &&
+                        !chatRoom.getAuction().getImageUrls().isEmpty()
+                        ? chatRoom.getAuction().getImageUrls().get(0)
+                        : null)
                 .build();
     }
 }

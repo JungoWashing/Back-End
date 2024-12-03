@@ -2,18 +2,15 @@ package junggoin.Back_End.domain.chat;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import junggoin.Back_End.domain.auction.Auction;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -44,12 +41,17 @@ public class ChatRoom implements Serializable {
     @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL)
     private List<MemberChatRoom> memberChatRooms = new ArrayList<>();
 
+    @OneToOne
+    @JoinColumn(name = "auction_id") // 외래 키 설정
+    private Auction auction;
+
     @Builder
-    public ChatRoom (String name, LocalDateTime lastMessageDate, String lastMessage) {
+    public ChatRoom (String name, LocalDateTime lastMessageDate, String lastMessage,Auction auction) {
         this.name = name;
         this.lastMessageDate = lastMessageDate;
         this.lastMessage = lastMessage;
         this.roomId = UUID.randomUUID().toString();
+        this.auction = auction;
     }
 
     public void update(String lastMessage) {

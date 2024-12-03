@@ -12,4 +12,5 @@ public class ChatRoomResponseDto {
     private final String name;
     private final LocalDateTime lastMessageDate;
     private final String lastMessage;
+    private final String imageUrl;
 }
