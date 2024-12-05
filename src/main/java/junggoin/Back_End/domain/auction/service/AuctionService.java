@@ -12,7 +12,6 @@ import junggoin.Back_End.domain.auction.Auction;
 import junggoin.Back_End.domain.auction.Status;
 import junggoin.Back_End.domain.auction.dto.ProductRepDto;
 import junggoin.Back_End.domain.auction.dto.ProductReqDto;
-import junggoin.Back_End.domain.auction.exception.ClosedAuctionException;
 import junggoin.Back_End.domain.auction.repository.AuctionRepository;
 import junggoin.Back_End.domain.member.Member;
 import junggoin.Back_End.domain.member.service.MemberService;
@@ -85,30 +84,6 @@ public class AuctionService {
         Auction auction = findById(auctionId);
         auctionRepository.delete(auction);
         return auctionId;
-    }
-
-    /*
-    즉시구매 로직 작성
-     */
-    @Transactional
-    public void immediatePurchase(Long auctionId) {
-        String key = AUCTION_KEY_PREFIX + auctionId;
-        String lockKey = String.format("ProductId:%d", auctionId);
-
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 경매 : " + auctionId));
-        try {
-            redisLockRegistry.executeLocked(lockKey, Duration.ofSeconds(5), () -> {
-                if (auction.getStatus() == Status.CLOSED) {
-                    throw new ClosedAuctionException("해당 경매가 종료되었습니다. auctionId : " + auctionId);
-                }
-                redisTemplate.expire(key, 0, TimeUnit.SECONDS);
-                auction.updateStatus(Status.CLOSED);
-            });
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            throw new RuntimeException(e);
-        }
     }
 
     // Method to end an auction

@@ -57,6 +57,12 @@ public class BidService {
             throw new IllegalArgumentException("현재 최고 입찰가 보다 커야합니다: " + currentWinningPrice);
         }
 
+        // 즉시 구매 확인
+        if (price >= auction.getImmediatePurchasePrice()) {
+            auctionService.endAuction(auctionId);
+            price = auction.getImmediatePurchasePrice();
+        }
+
         Bid bid = Bid.builder()
                 .auction(auction)
                 .bidder(bidder)
