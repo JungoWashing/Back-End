@@ -6,7 +6,10 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.util.IOUtils;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.ImagingOpException;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -21,10 +24,13 @@ import junggoin.Back_End.domain.auction.service.AuctionService;
 import junggoin.Back_End.domain.image.dto.ImageResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.imageio.ImageIO;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -95,21 +101,41 @@ public class ImageService {
         String extension = Objects.requireNonNull(originalFilename).substring(originalFilename.lastIndexOf(".")); //확장자 명
         filename = filename + extension;
 
+        // 이미지 읽기
         InputStream is = image.getInputStream();
-        byte[] bytes = IOUtils.toByteArray(is);
+        BufferedImage originalImage = ImageIO.read(is);
 
+        // 이미지 리사이징
+        BufferedImage resizedImage = resizeImage(originalImage, 900,900);
+
+        // 리사이징된 이미지를 ByteArrayOutputStream에 쓰기
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(resizedImage, extension.replace(".", ""), baos);
+        byte[] bytes = baos.toByteArray();
+
+        log.info("{} resized: {}", originalFilename, baos.size());
+
+        // S3에 업로드하기 위한 Metadata 설정
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType("image/" + extension);
+        metadata.setContentType("image/" + extension.replace(".", ""));
         metadata.setContentLength(bytes.length);
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
 
+        // S3에 업로드
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
         PutObjectRequest putObjectRequest =
                 new PutObjectRequest(bucketName, filename, byteArrayInputStream, metadata);
-        amazonS3.putObject(putObjectRequest); // put image to S3
+        amazonS3.putObject(putObjectRequest);
+
+        // 스트림 닫기
         byteArrayInputStream.close();
         is.close();
+        baos.close();
 
         return amazonS3.getUrl(bucketName, filename).toString();
+    }
+
+    BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) throws ImagingOpException, IOException {
+        return Scalr.resize(originalImage, Scalr.Method.QUALITY, Scalr.Mode.AUTOMATIC, targetWidth, targetHeight, Scalr.OP_ANTIALIAS);
     }
 
     public void deleteImageFromS3(String imageAddress) throws IOException {
