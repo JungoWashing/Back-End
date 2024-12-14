@@ -90,7 +90,7 @@ public class Auction {
     @Getter
     private Member member;
 
-    @OneToOne
+    @OneToOne(fetch = LAZY, cascade = CascadeType.ALL,orphanRemoval = true)
     @JoinColumn(name = "room_id")
     private ChatRoom chatRoom;
 

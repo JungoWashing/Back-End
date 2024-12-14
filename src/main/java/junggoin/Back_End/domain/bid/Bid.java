@@ -6,6 +6,8 @@ import junggoin.Back_End.domain.member.Member;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -25,10 +27,12 @@ public class Bid {
     @Column(name = "bid_id")
     private Long id;
 
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "auction_id")
     private Auction auction;
 
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "member_id")
     private Member bidder;
