@@ -17,6 +17,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -123,6 +124,7 @@ public class AiService {
     }
 
     // 상품 이미지 분석 요청
+    @Async
     public void analyzeProduct(Long auctionId){
         // 요청 헤더 설정
         HttpHeaders headers = new HttpHeaders();
